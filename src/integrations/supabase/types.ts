@@ -34,8 +34,10 @@ export type Database = {
       }
       bot_users: {
         Row: {
+          bio: string | null
           birth_year: number | null
           created_at: string
+          expertise: string | null
           first_name: string | null
           full_name: string | null
           id: string
@@ -52,8 +54,10 @@ export type Database = {
           username: string | null
         }
         Insert: {
+          bio?: string | null
           birth_year?: number | null
           created_at?: string
+          expertise?: string | null
           first_name?: string | null
           full_name?: string | null
           id?: string
@@ -70,8 +74,10 @@ export type Database = {
           username?: string | null
         }
         Update: {
+          bio?: string | null
           birth_year?: number | null
           created_at?: string
+          expertise?: string | null
           first_name?: string | null
           full_name?: string | null
           id?: string
@@ -123,6 +129,187 @@ export type Database = {
           url?: string
         }
         Relationships: []
+      }
+      conversations: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          mentor_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind?: string
+          mentor_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          mentor_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_mentor_id_fkey"
+            columns: ["mentor_id"]
+            isOneToOne: false
+            referencedRelation: "bot_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "bot_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      investments: {
+        Row: {
+          amount: string
+          created_at: string
+          id: string
+          investor_id: string
+          message: string | null
+          project_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: string
+          created_at?: string
+          id?: string
+          investor_id: string
+          message?: string | null
+          project_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: string
+          created_at?: string
+          id?: string
+          investor_id?: string
+          message?: string | null
+          project_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investments_investor_id_fkey"
+            columns: ["investor_id"]
+            isOneToOne: false
+            referencedRelation: "bot_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "investments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mentor_links: {
+        Row: {
+          created_at: string
+          id: string
+          mentor_id: string
+          project_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mentor_id: string
+          project_id: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mentor_id?: string
+          project_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mentor_links_mentor_id_fkey"
+            columns: ["mentor_id"]
+            isOneToOne: false
+            referencedRelation: "bot_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mentor_links_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mentor_links_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "bot_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          body: string
+          conversation_id: string
+          created_at: string
+          id: string
+          sender_id: string | null
+          sender_role: string
+        }
+        Insert: {
+          body: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          sender_id?: string | null
+          sender_role: string
+        }
+        Update: {
+          body?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          sender_id?: string | null
+          sender_role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "bot_users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       patent_applications: {
         Row: {
@@ -206,6 +393,56 @@ export type Database = {
           },
         ]
       }
+      projects: {
+        Row: {
+          created_at: string
+          description: string
+          funding_goal: string | null
+          id: string
+          logo_url: string | null
+          looking_for_team: boolean
+          team_note: string | null
+          telegram_group_url: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          funding_goal?: string | null
+          id?: string
+          logo_url?: string | null
+          looking_for_team?: boolean
+          team_note?: string | null
+          telegram_group_url?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          funding_goal?: string | null
+          id?: string
+          logo_url?: string | null
+          looking_for_team?: boolean
+          team_note?: string | null
+          telegram_group_url?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "bot_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       waitlist: {
         Row: {
           contact: string
@@ -235,7 +472,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      purge_old_messages: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
