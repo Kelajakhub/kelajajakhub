@@ -14,7 +14,222 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      app_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
+      bot_users: {
+        Row: {
+          birth_year: number | null
+          created_at: string
+          first_name: string | null
+          full_name: string | null
+          id: string
+          is_verified: boolean
+          parent_id: string | null
+          parent_phone: string | null
+          parent_secret: string | null
+          phone: string | null
+          role: string | null
+          state: string
+          state_data: Json
+          telegram_id: number
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          birth_year?: number | null
+          created_at?: string
+          first_name?: string | null
+          full_name?: string | null
+          id?: string
+          is_verified?: boolean
+          parent_id?: string | null
+          parent_phone?: string | null
+          parent_secret?: string | null
+          phone?: string | null
+          role?: string | null
+          state?: string
+          state_data?: Json
+          telegram_id: number
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          birth_year?: number | null
+          created_at?: string
+          first_name?: string | null
+          full_name?: string | null
+          id?: string
+          is_verified?: boolean
+          parent_id?: string | null
+          parent_phone?: string | null
+          parent_secret?: string | null
+          phone?: string | null
+          role?: string | null
+          state?: string
+          state_data?: Json
+          telegram_id?: number
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bot_users_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "bot_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      channels: {
+        Row: {
+          chat_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          title: string
+          url: string
+        }
+        Insert: {
+          chat_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          title: string
+          url: string
+        }
+        Update: {
+          chat_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          title?: string
+          url?: string
+        }
+        Relationships: []
+      }
+      patent_applications: {
+        Row: {
+          created_at: string
+          description: string
+          digital_seal: string
+          id: string
+          ministry_ref: string | null
+          sent_at: string | null
+          status: string
+          telegram_id: number | null
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          digital_seal: string
+          id?: string
+          ministry_ref?: string | null
+          sent_at?: string | null
+          status?: string
+          telegram_id?: number | null
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          digital_seal?: string
+          id?: string
+          ministry_ref?: string | null
+          sent_at?: string | null
+          status?: string
+          telegram_id?: number | null
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patent_applications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "bot_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posts: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          kind: string
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          kind: string
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "bot_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      waitlist: {
+        Row: {
+          contact: string
+          created_at: string
+          full_name: string
+          id: string
+          role: string
+        }
+        Insert: {
+          contact: string
+          created_at?: string
+          full_name: string
+          id?: string
+          role: string
+        }
+        Update: {
+          contact?: string
+          created_at?: string
+          full_name?: string
+          id?: string
+          role?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
