@@ -90,3 +90,34 @@ export const submitWaitlist = createServerFn({ method: "POST" })
     const core = await import("./admin-core.server");
     return core.joinWaitlist(data);
   });
+
+export const setupTelegramWebhook = createServerFn({ method: "POST" })
+  .inputValidator((d) => z.object({ token: z.string().min(6) }).parse(d))
+  .handler(async ({ data }) => {
+    const expected = process.env["TELEGRAM_WEBHOOK_SECRET"] ?? "";
+    if (!expected || data.token !== expected) throw new Error("Ruxsat yo'q");
+    const base = process.env["PUBLIC_APP_URL"];
+    const botToken = process.env["TELEGRAM_BOT_TOKEN"];
+    const res = await fetch(`https://api.telegram.org/bot${botToken}/setWebhook`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        url: `${base}/api/public/telegram/webhook`,
+        secret_token: expected,
+        allowed_updates: ["message", "edited_message", "callback_query"],
+        drop_pending_updates: true,
+      }),
+    });
+    const setWebhook = await res.json();
+    const cmdRes = await fetch(`https://api.telegram.org/bot${botToken}/setMyCommands`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        commands: [
+          { command: "start", description: "Botni ishga tushirish" },
+          { command: "help", description: "Yordam" },
+        ],
+      }),
+    });
+    return { setWebhook, commands: await cmdRes.json() };
+  });
