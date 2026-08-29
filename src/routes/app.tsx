@@ -60,16 +60,16 @@ function MiniApp() {
     setInitData(raw);
     const params = new URLSearchParams(window.location.search);
     if (params.get("tab")) setTab(params.get("tab")!);
-    load({ data: { initData: raw } })
+    callApi<Profile>("/api/public/miniapp/profile", { initData: raw })
       .then(setData)
       .catch((e: Error) => setError(e.message));
-  }, [load]);
+  }, []);
 
   async function onRun() {
     if (!initData || !code.trim()) return;
     setLabBusy(true);
     try {
-      const res = await runLab({ data: { initData, code } });
+      const res = await callApi<{ output: string }>("/api/public/miniapp/lab", { initData, code });
       setLabOut(res.output);
     } catch (e) {
       setLabOut((e as Error).message);
