@@ -26,7 +26,12 @@ export const Route = createFileRoute("/app")({
   component: MiniApp,
 });
 
-type Profile = Awaited<ReturnType<typeof miniProfile>>;
+type Profile = {
+  user: { full_name: string; role: string; phone: string; is_verified: boolean; parent_secret: string | null };
+  patents: { id: string; title: string; status: string; digital_seal: string }[];
+  teamPosts: { id: string; title: string; body: string }[];
+  children: { id: string; full_name: string; phone: string; is_verified: boolean }[];
+};
 
 const TABS = [
   { id: "portfolio", label: "Portfel" },
