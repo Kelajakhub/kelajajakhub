@@ -108,7 +108,7 @@ function Landing() {
             Patent topshirish (Waitlist)
           </span>
           <a
-            href="https://t.me/kelajakhub_bot"
+            href="https://t.me/kelajakhubbot"
             className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 font-semibold text-primary-foreground transition hover:opacity-90"
           >
             <Send className="size-4" /> Botni ochish
