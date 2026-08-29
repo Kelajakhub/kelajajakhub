@@ -1,7 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { miniProfile, miniRunLab } from "@/lib/miniapp.functions";
+
+async function callApi<T>(path: string, payload: unknown): Promise<T> {
+  const res = await fetch(path, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const json = (await res.json()) as T & { error?: string };
+  if (!res.ok) throw new Error(json.error ?? "So'rov bajarilmadi");
+  return json;
+}
 
 export const Route = createFileRoute("/app")({
   head: () => ({
@@ -17,7 +26,12 @@ export const Route = createFileRoute("/app")({
   component: MiniApp,
 });
 
-type Profile = Awaited<ReturnType<typeof miniProfile>>;
+type Profile = {
+  user: { full_name: string; role: string; phone: string; is_verified: boolean; parent_secret: string | null };
+  patents: { id: string; title: string; status: string; digital_seal: string }[];
+  teamPosts: { id: string; title: string; body: string }[];
+  children: { id: string; full_name: string; phone: string; is_verified: boolean }[];
+};
 
 const TABS = [
   { id: "portfolio", label: "Portfel" },
@@ -27,8 +41,6 @@ const TABS = [
 ] as const;
 
 function MiniApp() {
-  const load = useServerFn(miniProfile);
-  const runLab = useServerFn(miniRunLab);
   const [initData, setInitData] = useState<string | null>(null);
   const [data, setData] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -48,16 +60,16 @@ function MiniApp() {
     setInitData(raw);
     const params = new URLSearchParams(window.location.search);
     if (params.get("tab")) setTab(params.get("tab")!);
-    load({ data: { initData: raw } })
+    callApi<Profile>("/api/public/miniapp/profile", { initData: raw })
       .then(setData)
       .catch((e: Error) => setError(e.message));
-  }, [load]);
+  }, []);
 
   async function onRun() {
     if (!initData || !code.trim()) return;
     setLabBusy(true);
     try {
-      const res = await runLab({ data: { initData, code } });
+      const res = await callApi<{ output: string }>("/api/public/miniapp/lab", { initData, code });
       setLabOut(res.output);
     } catch (e) {
       setLabOut((e as Error).message);
