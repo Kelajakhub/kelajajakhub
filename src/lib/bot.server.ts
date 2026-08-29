@@ -4,6 +4,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const API = () => `https://api.telegram.org/bot${process.env["TELEGRAM_BOT_TOKEN"]}`;
+const MINI_APP_ORIGIN = "https://kelajajakhub.lovable.app";
 
 export type BotUser = {
   id: string;
@@ -28,8 +29,18 @@ export const ROLES: Record<string, string> = {
 };
 
 export function webAppUrl(path = "/app") {
-  const base = process.env["PUBLIC_APP_URL"] ?? "https://kelajakhub.uz";
-  return `${base}${path}`;
+  return new URL(path, MINI_APP_ORIGIN).toString();
+}
+
+async function refreshMiniAppMenu(chatId: number) {
+  await tg("setChatMenuButton", {
+    chat_id: chatId,
+    menu_button: {
+      type: "web_app",
+      text: "KelajakHub",
+      web_app: { url: webAppUrl() },
+    },
+  });
 }
 
 async function tg(method: string, body: unknown) {
@@ -559,6 +570,7 @@ export async function handleUpdate(update: Record<string, any>) {
   }
 
   if (text === "/start") {
+    await refreshMiniAppMenu(chatId);
     await upsertUser(chatId, { state: user.role ? user.state : "awaiting_role" });
     await startOnboarding(chatId, await getUser(chatId));
     return;
