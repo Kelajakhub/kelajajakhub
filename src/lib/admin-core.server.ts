@@ -2,9 +2,12 @@ import { useSession } from "@tanstack/react-start/server";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-export const ADMIN_EMAILS = ["dxasanovbek@gmail.com", "islomovfaxriddinshaxsiy1@gmail.com"];
-const ADMIN_PASSWORD = "kelajakhubrasmiy";
-const ADMIN_PIN = "1215";
+export const ADMIN_EMAILS = process.env["ADMIN_EMAILS"]
+  ? process.env["ADMIN_EMAILS"].split(",").map((e) => e.trim().toLowerCase())
+  : ["dxasanovbek@gmail.com", "islomovfaxriddinshaxsiy1@gmail.com"];
+
+const ADMIN_PASSWORD = process.env["ADMIN_PASSWORD"] || "kelajakhubrasmiy";
+const ADMIN_PIN = process.env["ADMIN_PIN"] || "1215";
 
 type AdminSession = { email?: string };
 
