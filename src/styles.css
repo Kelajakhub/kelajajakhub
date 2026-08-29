@@ -155,3 +155,40 @@
     color: var(--color-foreground);
   }
 }
+
+@theme inline {
+  --font-display: var(--font-display);
+  --font-sans: var(--font-body);
+}
+
+@layer base {
+  body {
+    font-family: var(--font-body);
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+}
+
+@utility hero-surface {
+  background-image: var(--gradient-hero);
+}
+
+@utility gold-text {
+  background-image: var(--gradient-gold);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility panel {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-elevated);
+}
+
+@utility glow {
+  box-shadow: var(--shadow-glow);
+}
