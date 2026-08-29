@@ -14,7 +14,7 @@ export const Route = createFileRoute("/app")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: MiniApp;
+  component: MiniApp,
 });
 
 type Profile = Awaited<ReturnType<typeof miniProfile>>;
