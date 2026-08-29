@@ -1,7 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { miniProfile, miniRunLab } from "@/lib/miniapp.functions";
+
+async function callApi<T>(path: string, payload: unknown): Promise<T> {
+  const res = await fetch(path, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const json = (await res.json()) as T & { error?: string };
+  if (!res.ok) throw new Error(json.error ?? "So'rov bajarilmadi");
+  return json;
+}
 
 export const Route = createFileRoute("/app")({
   head: () => ({
