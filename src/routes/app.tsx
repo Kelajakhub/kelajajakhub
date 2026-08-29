@@ -41,8 +41,6 @@ const TABS = [
 ] as const;
 
 function MiniApp() {
-  const load = useServerFn(miniProfile);
-  const runLab = useServerFn(miniRunLab);
   const [initData, setInitData] = useState<string | null>(null);
   const [data, setData] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
