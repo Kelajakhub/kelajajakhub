@@ -69,7 +69,10 @@ function AdminPage() {
         pin: String(fd.get("pin") ?? ""),
       },
     }).catch(() => ({ ok: false as const }));
-    if (!("ok" in res) || !res.ok) return toast.error("Email, parol yoki PIN xato.");
+    if (!("ok" in res) || !res.ok) {
+      toast.error("Email, parol yoki PIN xato.");
+      return;
+    }
     setEmail("email" in res ? (res.email ?? null) : null);
     await refresh();
   }

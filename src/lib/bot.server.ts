@@ -502,8 +502,8 @@ async function handleState(chatId: number, user: BotUser, text: string): Promise
 /* --------------------------------- entrypoint -------------------------------- */
 
 export async function handleUpdate(update: Record<string, any>) {
-  const callback = update.callback_query;
-  const message = update.message ?? update.edited_message;
+  const callback = update['callback_query'];
+  const message = update['message'] ?? update['edited_message'];
 
   if (callback) {
     const chatId = Number(callback.from.id);
