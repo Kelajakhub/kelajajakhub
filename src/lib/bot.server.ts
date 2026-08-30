@@ -204,9 +204,18 @@ async function startOnboarding(chatId: number, user: BotUser | null) {
   }
   if (!user.phone) {
     await upsertUser(chatId, { state: "awaiting_phone" });
-    await sendMessage(chatId, "📱 Mobil telefon raqamingizni yuboring.", phoneKeyboard);
+    await sendMessage(
+      chatId,
+      "📱 Mobil telefon raqamingizni yuboring.\n\nRaqam SMS orqali tasdiqlanadi, shuning uchun haqiqiy raqamni kiriting.",
+      phoneKeyboard,
+    );
     return;
   }
+  if (!isPhoneVerified(user)) {
+    await promptOtp(chatId, user);
+    return;
+  }
+
   if (user.role === "inventor" && !user.parent_id) {
     if (!user.parent_phone) {
       await upsertUser(chatId, { state: "awaiting_parent_phone" });
