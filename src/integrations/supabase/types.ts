@@ -42,10 +42,15 @@ export type Database = {
           full_name: string | null
           id: string
           is_verified: boolean
+          otp_attempts: number
+          otp_code: string | null
+          otp_expires_at: string | null
+          otp_sent_at: string | null
           parent_id: string | null
           parent_phone: string | null
           parent_secret: string | null
           phone: string | null
+          phone_verified: boolean
           role: string | null
           state: string
           state_data: Json
@@ -62,10 +67,15 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_verified?: boolean
+          otp_attempts?: number
+          otp_code?: string | null
+          otp_expires_at?: string | null
+          otp_sent_at?: string | null
           parent_id?: string | null
           parent_phone?: string | null
           parent_secret?: string | null
           phone?: string | null
+          phone_verified?: boolean
           role?: string | null
           state?: string
           state_data?: Json
@@ -82,10 +92,15 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_verified?: boolean
+          otp_attempts?: number
+          otp_code?: string | null
+          otp_expires_at?: string | null
+          otp_sent_at?: string | null
           parent_id?: string | null
           parent_phone?: string | null
           parent_secret?: string | null
           phone?: string | null
+          phone_verified?: boolean
           role?: string | null
           state?: string
           state_data?: Json
