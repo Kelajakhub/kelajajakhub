@@ -526,14 +526,68 @@ async function handleState(chatId: number, user: BotUser, text: string): Promise
     }
     case "awaiting_phone": {
       const phone = normalizePhone(text);
-      if (phone.length < 9) {
-        await sendMessage(chatId, "❗️ Iltimos, tugma orqali telefon raqamingizni yuboring.", phoneKeyboard);
+      if (!validUzPhone(phone)) {
+        await sendMessage(
+          chatId,
+          "❗️ Raqam noto'g'ri. Tugma orqali yuboring yoki <code>+998901234567</code> shaklida yozing.",
+          phoneKeyboard,
+        );
         return true;
       }
-      const updated = await upsertUser(chatId, { phone });
-      await startOnboarding(chatId, updated);
+      const updated = await upsertUser(chatId, { phone, phone_verified: false });
+      await sendOtp(chatId, updated);
       return true;
     }
+    case "awaiting_otp": {
+      const code = text.replace(/\D/g, "");
+      if (code.length !== 6) {
+        await sendMessage(chatId, "❗️ 6 xonali kodni raqamlar bilan yozing.", otpKeyboard);
+        return true;
+      }
+      if (!user.otp_code || !user.otp_expires_at || Date.parse(user.otp_expires_at) < Date.now()) {
+        await sendMessage(chatId, "⌛️ Kod muddati tugagan. Yangi kod yuboramiz.");
+        await sendOtp(chatId, { ...user, otp_sent_at: null });
+        return true;
+      }
+      if (code !== user.otp_code) {
+        const attempts = (user.otp_attempts ?? 0) + 1;
+        if (attempts >= OTP_MAX_ATTEMPTS) {
+          const reset = await upsertUser(chatId, {
+            otp_code: null,
+            otp_expires_at: null,
+            otp_attempts: 0,
+            otp_sent_at: null,
+            phone: null,
+            state: "awaiting_phone",
+          });
+          await sendMessage(
+            chatId,
+            "🚫 Kod 5 marta xato kiritildi. Telefon raqamingizni qaytadan yuboring.",
+            phoneKeyboard,
+          );
+          void reset;
+          return true;
+        }
+        await upsertUser(chatId, { otp_attempts: attempts });
+        await sendMessage(
+          chatId,
+          `❌ Kod mos kelmadi. Qolgan urinish: <b>${OTP_MAX_ATTEMPTS - attempts}</b>`,
+          otpKeyboard,
+        );
+        return true;
+      }
+      const verified = await upsertUser(chatId, {
+        phone_verified: true,
+        otp_code: null,
+        otp_expires_at: null,
+        otp_attempts: 0,
+        state: "verified_phone",
+      });
+      await sendMessage(chatId, "✅ Telefon raqamingiz tasdiqlandi!");
+      await startOnboarding(chatId, verified);
+      return true;
+    }
+
     case "awaiting_parent_phone": {
       const phone = normalizePhone(text);
       const { data: parent } = await supabaseAdmin
