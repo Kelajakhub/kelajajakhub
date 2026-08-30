@@ -18,9 +18,15 @@ export type BotUser = {
   parent_id: string | null;
   parent_secret: string | null;
   is_verified: boolean;
+  phone_verified: boolean;
+  otp_code: string | null;
+  otp_expires_at: string | null;
+  otp_attempts: number;
+  otp_sent_at: string | null;
   state: string;
   state_data: Record<string, unknown>;
 };
+
 
 export const ROLES: Record<string, string> = {
   inventor: "Yosh ixtirochi (16 yoshgacha)",
