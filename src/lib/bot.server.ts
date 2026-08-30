@@ -2,6 +2,7 @@
  * KelajakHub Telegram bot logic (server-only).
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { otpMessage, sendSms, smsConfigured } from "@/lib/sms.server";
 
 const API = () => `https://api.telegram.org/bot${process.env["TELEGRAM_BOT_TOKEN"]}`;
 const MINI_APP_ORIGIN = "https://kelajajakhub.lovable.app";
@@ -17,9 +18,15 @@ export type BotUser = {
   parent_id: string | null;
   parent_secret: string | null;
   is_verified: boolean;
+  phone_verified: boolean;
+  otp_code: string | null;
+  otp_expires_at: string | null;
+  otp_attempts: number;
+  otp_sent_at: string | null;
   state: string;
   state_data: Record<string, unknown>;
 };
+
 
 export const ROLES: Record<string, string> = {
   inventor: "Yosh ixtirochi (16 yoshgacha)",
@@ -197,9 +204,18 @@ async function startOnboarding(chatId: number, user: BotUser | null) {
   }
   if (!user.phone) {
     await upsertUser(chatId, { state: "awaiting_phone" });
-    await sendMessage(chatId, "📱 Mobil telefon raqamingizni yuboring.", phoneKeyboard);
+    await sendMessage(
+      chatId,
+      "📱 Mobil telefon raqamingizni yuboring.\n\nRaqam SMS orqali tasdiqlanadi, shuning uchun haqiqiy raqamni kiriting.",
+      phoneKeyboard,
+    );
     return;
   }
+  if (!isPhoneVerified(user)) {
+    await promptOtp(chatId, user);
+    return;
+  }
+
   if (user.role === "inventor" && !user.parent_id) {
     if (!user.parent_phone) {
       await upsertUser(chatId, { state: "awaiting_parent_phone" });
@@ -232,8 +248,100 @@ async function showMenu(chatId: number, user: BotUser) {
 
 function normalizePhone(raw: string) {
   const digits = raw.replace(/\D/g, "");
-  return digits ? `+${digits}` : "";
+  if (!digits) return "";
+  // 9 xonali lokal raqam (901234567) -> +998901234567
+  if (digits.length === 9) return `+998${digits}`;
+  return `+${digits}`;
 }
+
+function validUzPhone(phone: string) {
+  return /^\+998\d{9}$/.test(phone) || /^\+\d{10,15}$/.test(phone);
+}
+
+/* ------------------------------- SMS tasdiqlash ------------------------------ */
+
+const OTP_TTL_MS = 5 * 60 * 1000;
+const OTP_MAX_ATTEMPTS = 5;
+const OTP_RESEND_MS = 60 * 1000;
+
+/** Eski (SMS joriy etilishidan oldin ro'yxatdan o'tgan) foydalanuvchilar qayta tasdiqlanmaydi. */
+function isPhoneVerified(user: BotUser) {
+  return Boolean(user.phone_verified || (user.is_verified && user.state === "ready"));
+}
+
+function otpCode() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+const otpKeyboard = {
+  reply_markup: {
+    inline_keyboard: [
+      [{ text: "🔁 Kodni qayta yuborish", callback_data: "otp:resend" }],
+      [{ text: "✏️ Raqamni o'zgartirish", callback_data: "otp:change" }],
+    ],
+  },
+};
+
+/** Kod yaratadi, SMS yuboradi va holatni `awaiting_otp` ga o'tkazadi. */
+async function sendOtp(chatId: number, user: BotUser) {
+  const phone = user.phone ?? "";
+  if (!phone) return startOnboarding(chatId, user);
+
+  const last = user.otp_sent_at ? Date.parse(user.otp_sent_at) : 0;
+  if (last && Date.now() - last < OTP_RESEND_MS) {
+    const wait = Math.ceil((OTP_RESEND_MS - (Date.now() - last)) / 1000);
+    await sendMessage(chatId, `⏳ Yangi kod so'rash uchun ${wait} soniya kutib turing.`, otpKeyboard);
+    return;
+  }
+
+  const code = otpCode();
+  await upsertUser(chatId, {
+    otp_code: code,
+    otp_expires_at: new Date(Date.now() + OTP_TTL_MS).toISOString(),
+    otp_attempts: 0,
+    otp_sent_at: new Date().toISOString(),
+    state: "awaiting_otp",
+  });
+
+  const result = await sendSms(phone, otpMessage(code));
+  if (result.ok) {
+    await sendMessage(
+      chatId,
+      `📩 <b>${phone}</b> raqamiga 6 xonali tasdiqlash kodi yuborildi.\n\nKodni shu yerga yozing (masalan <code>123456</code>).\nKod 5 daqiqa amal qiladi.`,
+      otpKeyboard,
+    );
+    return;
+  }
+
+  // SMS provayder sozlanmagan yoki xato bergan — oqim to'xtab qolmasligi uchun
+  // kodni Telegram orqali yuboramiz.
+  console.error(`[otp] SMS yuborilmadi (${result.error}) — Telegram fallback`);
+  await sendMessage(
+    chatId,
+    `📩 Tasdiqlash kodi: <code>${code}</code>\n\n${
+      smsConfigured()
+        ? "SMS yuborishda vaqtinchalik uzilish bo'ldi, shuning uchun kod shu yerga yuborildi."
+        : "SMS xizmati hali ulanmagani uchun kod shu yerga yuborildi."
+    }\n\nKodni tasdiqlash uchun shu yerga yozing.`,
+    otpKeyboard,
+  );
+}
+
+async function promptOtp(chatId: number, user: BotUser) {
+  const expired = !user.otp_code || !user.otp_expires_at || Date.parse(user.otp_expires_at) < Date.now();
+  if (expired) {
+    await sendOtp(chatId, user);
+    return;
+  }
+  await upsertUser(chatId, { state: "awaiting_otp" });
+  await sendMessage(
+    chatId,
+    `🔐 <b>${user.phone}</b> raqamiga yuborilgan 6 xonali kodni kiriting.`,
+    otpKeyboard,
+  );
+}
+
+
 
 /* --------------------------------- menu actions ------------------------------ */
 
@@ -244,7 +352,7 @@ async function aiMentor(chatId: number, question: string) {
     method: "POST",
     headers: { "content-type": "application/json", Authorization: `Bearer ${key}` },
     body: JSON.stringify({
-      model: "google/gemini-3.5-flash",
+      model: "google/gemini-2.5-flash",
       messages: [
         {
           role: "system",
@@ -418,14 +526,68 @@ async function handleState(chatId: number, user: BotUser, text: string): Promise
     }
     case "awaiting_phone": {
       const phone = normalizePhone(text);
-      if (phone.length < 9) {
-        await sendMessage(chatId, "❗️ Iltimos, tugma orqali telefon raqamingizni yuboring.", phoneKeyboard);
+      if (!validUzPhone(phone)) {
+        await sendMessage(
+          chatId,
+          "❗️ Raqam noto'g'ri. Tugma orqali yuboring yoki <code>+998901234567</code> shaklida yozing.",
+          phoneKeyboard,
+        );
         return true;
       }
-      const updated = await upsertUser(chatId, { phone });
-      await startOnboarding(chatId, updated);
+      const updated = await upsertUser(chatId, { phone, phone_verified: false });
+      await sendOtp(chatId, updated);
       return true;
     }
+    case "awaiting_otp": {
+      const code = text.replace(/\D/g, "");
+      if (code.length !== 6) {
+        await sendMessage(chatId, "❗️ 6 xonali kodni raqamlar bilan yozing.", otpKeyboard);
+        return true;
+      }
+      if (!user.otp_code || !user.otp_expires_at || Date.parse(user.otp_expires_at) < Date.now()) {
+        await sendMessage(chatId, "⌛️ Kod muddati tugagan. Yangi kod yuboramiz.");
+        await sendOtp(chatId, { ...user, otp_sent_at: null });
+        return true;
+      }
+      if (code !== user.otp_code) {
+        const attempts = (user.otp_attempts ?? 0) + 1;
+        if (attempts >= OTP_MAX_ATTEMPTS) {
+          const reset = await upsertUser(chatId, {
+            otp_code: null,
+            otp_expires_at: null,
+            otp_attempts: 0,
+            otp_sent_at: null,
+            phone: null,
+            state: "awaiting_phone",
+          });
+          await sendMessage(
+            chatId,
+            "🚫 Kod 5 marta xato kiritildi. Telefon raqamingizni qaytadan yuboring.",
+            phoneKeyboard,
+          );
+          void reset;
+          return true;
+        }
+        await upsertUser(chatId, { otp_attempts: attempts });
+        await sendMessage(
+          chatId,
+          `❌ Kod mos kelmadi. Qolgan urinish: <b>${OTP_MAX_ATTEMPTS - attempts}</b>`,
+          otpKeyboard,
+        );
+        return true;
+      }
+      const verified = await upsertUser(chatId, {
+        phone_verified: true,
+        otp_code: null,
+        otp_expires_at: null,
+        otp_attempts: 0,
+        state: "verified_phone",
+      });
+      await sendMessage(chatId, "✅ Telefon raqamingiz tasdiqlandi!");
+      await startOnboarding(chatId, verified);
+      return true;
+    }
+
     case "awaiting_parent_phone": {
       const phone = normalizePhone(text);
       const { data: parent } = await supabaseAdmin
@@ -539,7 +701,26 @@ export async function handleUpdate(update: Record<string, any>) {
       await startOnboarding(chatId, await getUser(chatId));
       return;
     }
+    if (data === "otp:resend") {
+      const current = await getUser(chatId);
+      if (current) await sendOtp(chatId, current);
+      return;
+    }
+    if (data === "otp:change") {
+      await upsertUser(chatId, {
+        phone: null,
+        phone_verified: false,
+        otp_code: null,
+        otp_expires_at: null,
+        otp_attempts: 0,
+        otp_sent_at: null,
+        state: "awaiting_phone",
+      });
+      await sendMessage(chatId, "📱 Yangi telefon raqamingizni yuboring.", phoneKeyboard);
+      return;
+    }
     return;
+
   }
 
   if (!message?.chat?.id) return;
@@ -578,8 +759,15 @@ export async function handleUpdate(update: Record<string, any>) {
 
   if (message.contact?.phone_number) {
     const phone = normalizePhone(String(message.contact.phone_number));
-    const updated = await upsertUser(chatId, { phone });
-    await startOnboarding(chatId, updated);
+    const updated = await upsertUser(chatId, { phone, phone_verified: false, otp_sent_at: null });
+    await sendOtp(chatId, updated);
+    return;
+  }
+
+  // Telefon tasdiqlanmaguncha menyu ochilmaydi.
+  if (user.role && user.full_name && user.phone && !isPhoneVerified(user)) {
+    if (await handleState(chatId, user, text)) return;
+    await promptOtp(chatId, user);
     return;
   }
 
@@ -587,6 +775,7 @@ export async function handleUpdate(update: Record<string, any>) {
     if (await handleMenu(chatId, user, text)) return;
   }
   if (await handleState(chatId, user, text)) return;
+
 
   if (!user.role || user.state === "awaiting_role") {
     await startOnboarding(chatId, user);
