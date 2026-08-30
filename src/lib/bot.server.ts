@@ -740,8 +740,15 @@ export async function handleUpdate(update: Record<string, any>) {
 
   if (message.contact?.phone_number) {
     const phone = normalizePhone(String(message.contact.phone_number));
-    const updated = await upsertUser(chatId, { phone });
-    await startOnboarding(chatId, updated);
+    const updated = await upsertUser(chatId, { phone, phone_verified: false, otp_sent_at: null });
+    await sendOtp(chatId, updated);
+    return;
+  }
+
+  // Telefon tasdiqlanmaguncha menyu ochilmaydi.
+  if (user.role && user.full_name && user.phone && !isPhoneVerified(user)) {
+    if (await handleState(chatId, user, text)) return;
+    await promptOtp(chatId, user);
     return;
   }
 
@@ -749,6 +756,7 @@ export async function handleUpdate(update: Record<string, any>) {
     if (await handleMenu(chatId, user, text)) return;
   }
   if (await handleState(chatId, user, text)) return;
+
 
   if (!user.role || user.state === "awaiting_role") {
     await startOnboarding(chatId, user);
