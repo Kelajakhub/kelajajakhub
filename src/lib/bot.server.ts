@@ -248,8 +248,100 @@ async function showMenu(chatId: number, user: BotUser) {
 
 function normalizePhone(raw: string) {
   const digits = raw.replace(/\D/g, "");
-  return digits ? `+${digits}` : "";
+  if (!digits) return "";
+  // 9 xonali lokal raqam (901234567) -> +998901234567
+  if (digits.length === 9) return `+998${digits}`;
+  return `+${digits}`;
 }
+
+function validUzPhone(phone: string) {
+  return /^\+998\d{9}$/.test(phone) || /^\+\d{10,15}$/.test(phone);
+}
+
+/* ------------------------------- SMS tasdiqlash ------------------------------ */
+
+const OTP_TTL_MS = 5 * 60 * 1000;
+const OTP_MAX_ATTEMPTS = 5;
+const OTP_RESEND_MS = 60 * 1000;
+
+/** Eski (SMS joriy etilishidan oldin ro'yxatdan o'tgan) foydalanuvchilar qayta tasdiqlanmaydi. */
+function isPhoneVerified(user: BotUser) {
+  return Boolean(user.phone_verified || (user.is_verified && user.state === "ready"));
+}
+
+function otpCode() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+const otpKeyboard = {
+  reply_markup: {
+    inline_keyboard: [
+      [{ text: "🔁 Kodni qayta yuborish", callback_data: "otp:resend" }],
+      [{ text: "✏️ Raqamni o'zgartirish", callback_data: "otp:change" }],
+    ],
+  },
+};
+
+/** Kod yaratadi, SMS yuboradi va holatni `awaiting_otp` ga o'tkazadi. */
+async function sendOtp(chatId: number, user: BotUser) {
+  const phone = user.phone ?? "";
+  if (!phone) return startOnboarding(chatId, user);
+
+  const last = user.otp_sent_at ? Date.parse(user.otp_sent_at) : 0;
+  if (last && Date.now() - last < OTP_RESEND_MS) {
+    const wait = Math.ceil((OTP_RESEND_MS - (Date.now() - last)) / 1000);
+    await sendMessage(chatId, `⏳ Yangi kod so'rash uchun ${wait} soniya kutib turing.`, otpKeyboard);
+    return;
+  }
+
+  const code = otpCode();
+  await upsertUser(chatId, {
+    otp_code: code,
+    otp_expires_at: new Date(Date.now() + OTP_TTL_MS).toISOString(),
+    otp_attempts: 0,
+    otp_sent_at: new Date().toISOString(),
+    state: "awaiting_otp",
+  });
+
+  const result = await sendSms(phone, otpMessage(code));
+  if (result.ok) {
+    await sendMessage(
+      chatId,
+      `📩 <b>${phone}</b> raqamiga 6 xonali tasdiqlash kodi yuborildi.\n\nKodni shu yerga yozing (masalan <code>123456</code>).\nKod 5 daqiqa amal qiladi.`,
+      otpKeyboard,
+    );
+    return;
+  }
+
+  // SMS provayder sozlanmagan yoki xato bergan — oqim to'xtab qolmasligi uchun
+  // kodni Telegram orqali yuboramiz.
+  console.error(`[otp] SMS yuborilmadi (${result.error}) — Telegram fallback`);
+  await sendMessage(
+    chatId,
+    `📩 Tasdiqlash kodi: <code>${code}</code>\n\n${
+      smsConfigured()
+        ? "SMS yuborishda vaqtinchalik uzilish bo'ldi, shuning uchun kod shu yerga yuborildi."
+        : "SMS xizmati hali ulanmagani uchun kod shu yerga yuborildi."
+    }\n\nKodni tasdiqlash uchun shu yerga yozing.`,
+    otpKeyboard,
+  );
+}
+
+async function promptOtp(chatId: number, user: BotUser) {
+  const expired = !user.otp_code || !user.otp_expires_at || Date.parse(user.otp_expires_at) < Date.now();
+  if (expired) {
+    await sendOtp(chatId, user);
+    return;
+  }
+  await upsertUser(chatId, { state: "awaiting_otp" });
+  await sendMessage(
+    chatId,
+    `🔐 <b>${user.phone}</b> raqamiga yuborilgan 6 xonali kodni kiriting.`,
+    otpKeyboard,
+  );
+}
+
+
 
 /* --------------------------------- menu actions ------------------------------ */
 
