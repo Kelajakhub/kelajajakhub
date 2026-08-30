@@ -352,7 +352,7 @@ async function aiMentor(chatId: number, question: string) {
     method: "POST",
     headers: { "content-type": "application/json", Authorization: `Bearer ${key}` },
     body: JSON.stringify({
-      model: "google/gemini-3.5-flash",
+      model: "google/gemini-2.5-flash",
       messages: [
         {
           role: "system",
