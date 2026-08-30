@@ -701,7 +701,26 @@ export async function handleUpdate(update: Record<string, any>) {
       await startOnboarding(chatId, await getUser(chatId));
       return;
     }
+    if (data === "otp:resend") {
+      const current = await getUser(chatId);
+      if (current) await sendOtp(chatId, current);
+      return;
+    }
+    if (data === "otp:change") {
+      await upsertUser(chatId, {
+        phone: null,
+        phone_verified: false,
+        otp_code: null,
+        otp_expires_at: null,
+        otp_attempts: 0,
+        otp_sent_at: null,
+        state: "awaiting_phone",
+      });
+      await sendMessage(chatId, "📱 Yangi telefon raqamingizni yuboring.", phoneKeyboard);
+      return;
+    }
     return;
+
   }
 
   if (!message?.chat?.id) return;
