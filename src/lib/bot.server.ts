@@ -2,6 +2,7 @@
  * KelajakHub Telegram bot logic (server-only).
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { otpMessage, sendSms, smsConfigured } from "@/lib/sms.server";
 
 const API = () => `https://api.telegram.org/bot${process.env["TELEGRAM_BOT_TOKEN"]}`;
 const MINI_APP_ORIGIN = "https://kelajajakhub.lovable.app";
