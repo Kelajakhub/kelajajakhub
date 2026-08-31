@@ -30,18 +30,20 @@ type Me = {
   is_verified: boolean;
   parent_id: string | null;
   parent_secret: string | null;
+  birth_year: number | null;
 };
 
 async function auth(initData: string): Promise<Me> {
   const telegramId = verifyInitData(initData);
   const { data } = await supabaseAdmin
     .from("bot_users")
-    .select("id, telegram_id, full_name, role, phone, is_verified, parent_id, parent_secret")
+    .select("id, telegram_id, full_name, role, phone, is_verified, parent_id, parent_secret, birth_year")
     .eq("telegram_id", telegramId)
     .maybeSingle();
   if (!data) throw new Error("Avval botda ro'yxatdan o'ting");
   return data as Me;
 }
+
 
 /** Chat history is kept for 30 days only; patent history is never touched. */
 async function purgeOldMessages() {
