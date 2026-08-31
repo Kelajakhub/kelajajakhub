@@ -205,14 +205,14 @@ export async function profile(initData: string) {
 export async function saveProject(
   initData: string,
   input: {
-    id?: string;
+    id?: string | undefined;
     title: string;
     description: string;
-    logo_url?: string | null;
-    funding_goal?: string | null;
-    looking_for_team?: boolean;
-    team_note?: string | null;
-    telegram_group_url?: string | null;
+    logo_url?: string | null | undefined;
+    funding_goal?: string | null | undefined;
+    looking_for_team?: boolean | undefined;
+    team_note?: string | null | undefined;
+    telegram_group_url?: string | null | undefined;
   },
 ) {
   const me = await auth(initData);
@@ -274,7 +274,7 @@ async function ensureConversation(userId: string, mentorId: string | null, kind:
   return data.id;
 }
 
-export async function openChat(initData: string, opts: { conversationId?: string; mentorId?: string; ai?: boolean }) {
+export async function openChat(initData: string, opts: { conversationId?: string | undefined; mentorId?: string | undefined; ai?: boolean | undefined }) {
   const me = await auth(initData);
   await purgeOldMessages();
   let conversationId = opts.conversationId;
