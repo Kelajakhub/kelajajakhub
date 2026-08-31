@@ -13,6 +13,8 @@ import {
   Bot,
   Sparkles,
 } from "lucide-react";
+import logoAsset from "@/assets/logo.png.asset.json";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -76,9 +78,11 @@ function Landing() {
   return (
     <div className="min-h-screen hero-surface text-foreground">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-6">
-        <span className="font-display text-lg font-bold tracking-tight">
+        <span className="flex items-center gap-2.5 font-display text-lg font-bold tracking-tight">
+          <img src={logoAsset.url} alt="KelajakHub logotipi" className="size-9" width={36} height={36} />
           Kelajak<span className="gold-text">Hub</span>
         </span>
+
         <div className="flex items-center gap-3 text-sm">
           <span className="hidden rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-accent sm:inline">
             Platforma ishlayapti

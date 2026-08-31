@@ -30,18 +30,20 @@ type Me = {
   is_verified: boolean;
   parent_id: string | null;
   parent_secret: string | null;
+  birth_year: number | null;
 };
 
 async function auth(initData: string): Promise<Me> {
   const telegramId = verifyInitData(initData);
   const { data } = await supabaseAdmin
     .from("bot_users")
-    .select("id, telegram_id, full_name, role, phone, is_verified, parent_id, parent_secret")
+    .select("id, telegram_id, full_name, role, phone, is_verified, parent_id, parent_secret, birth_year")
     .eq("telegram_id", telegramId)
     .maybeSingle();
   if (!data) throw new Error("Avval botda ro'yxatdan o'ting");
   return data as Me;
 }
+
 
 /** Chat history is kept for 30 days only; patent history is never touched. */
 async function purgeOldMessages() {
@@ -63,90 +65,130 @@ async function notify(userId: string, text: string) {
   }
 }
 
+const EMPTY = { data: [] as never[] };
+const empty = () => Promise.resolve(EMPTY);
+
 export async function profile(initData: string) {
   const me = await auth(initData);
-  await purgeOldMessages();
+  const role = me.role ?? "inventor";
+  const age = me.birth_year ? new Date().getFullYear() - me.birth_year : null;
+  const isMinor = role === "inventor" && (age === null || age < 16);
+
+  const isInventor = role === "inventor";
+  const isParent = role === "parent";
+  const isMentor = role === "mentor";
+  const isInvestor = role === "investor";
 
   const [patents, myProjects, mentors, convos, teamAds, children, mentorLinks] = await Promise.all([
-    supabaseAdmin
-      .from("patent_applications")
-      .select("id, title, status, digital_seal, created_at")
-      .eq("telegram_id", me.telegram_id)
-      .order("created_at", { ascending: false }),
-    supabaseAdmin.from("projects").select("*").eq("user_id", me.id).order("created_at", { ascending: false }),
-    supabaseAdmin
-      .from("bot_users")
-      .select("id, full_name, expertise, bio, username")
-      .eq("role", "mentor")
-      .order("created_at", { ascending: false })
-      .limit(50),
-    supabaseAdmin
-      .from("conversations")
-      .select("id, kind, user_id, mentor_id, updated_at")
-      .or(`user_id.eq.${me.id},mentor_id.eq.${me.id}`)
-      .order("updated_at", { ascending: false }),
-    supabaseAdmin
-      .from("projects")
-      .select("id, title, description, logo_url, team_note, telegram_group_url, user_id, created_at")
-      .eq("looking_for_team", true)
-      .order("created_at", { ascending: false })
-      .limit(30),
-    supabaseAdmin.from("bot_users").select("id, full_name, phone, is_verified, telegram_id").eq("parent_id", me.id),
-    supabaseAdmin.from("mentor_links").select("id, project_id, user_id, status, created_at").eq("mentor_id", me.id),
+    isInventor
+      ? supabaseAdmin
+          .from("patent_applications")
+          .select("id, title, status, digital_seal, created_at")
+          .eq("telegram_id", me.telegram_id)
+          .order("created_at", { ascending: false })
+          .limit(50)
+      : empty(),
+    isInventor
+      ? supabaseAdmin.from("projects").select("*").eq("user_id", me.id).order("created_at", { ascending: false }).limit(30)
+      : empty(),
+    isInventor
+      ? supabaseAdmin
+          .from("bot_users")
+          .select("id, full_name, expertise, bio, username")
+          .eq("role", "mentor")
+          .order("created_at", { ascending: false })
+          .limit(30)
+      : empty(),
+    isParent
+      ? empty()
+      : supabaseAdmin
+          .from("conversations")
+          .select("id, kind, user_id, mentor_id, updated_at")
+          .or(`user_id.eq.${me.id},mentor_id.eq.${me.id}`)
+          .order("updated_at", { ascending: false })
+          .limit(30),
+    isInventor || isMentor
+      ? supabaseAdmin
+          .from("projects")
+          .select("id, title, description, logo_url, team_note, telegram_group_url, user_id, created_at")
+          .eq("looking_for_team", true)
+          .order("created_at", { ascending: false })
+          .limit(20)
+      : empty(),
+    isParent
+      ? supabaseAdmin.from("bot_users").select("id, full_name, phone, is_verified, telegram_id").eq("parent_id", me.id)
+      : empty(),
+    isMentor ? supabaseAdmin.from("mentor_links").select("id, project_id, user_id, status, created_at").eq("mentor_id", me.id) : empty(),
   ]);
 
-  const childIds = (children.data ?? []).map((c) => c.id);
-  const [childProjects, childPatents, investorFeed, myInvestments, receivedInvestments, mentorProjects] =
+  const childIds = (children.data ?? []).map((c: { id: string }) => c.id);
+  const myProjectIdList = (myProjects.data ?? []).map((p: { id: string }) => p.id);
+  const mentorProjectIds = (mentorLinks.data ?? []).map((l: { project_id: string }) => l.project_id);
+
+  const [childProjects, childPatents, investorFeed, myInvestments, incoming, parentPending, mentorProjects] =
     await Promise.all([
       childIds.length
         ? supabaseAdmin.from("projects").select("*").in("user_id", childIds).order("created_at", { ascending: false })
-        : Promise.resolve({ data: [] as never[] }),
+        : empty(),
       childIds.length
         ? supabaseAdmin
             .from("patent_applications")
             .select("id, title, status, digital_seal, created_at, user_id")
             .in("user_id", childIds)
             .order("created_at", { ascending: false })
-        : Promise.resolve({ data: [] as never[] }),
-      me.role === "investor"
+        : empty(),
+      isInvestor
         ? supabaseAdmin
             .from("projects")
             .select("id, title, description, logo_url, funding_goal, user_id, created_at")
             .order("created_at", { ascending: false })
-            .limit(50)
-        : Promise.resolve({ data: [] as never[] }),
-      me.role === "investor"
+            .limit(40)
+        : empty(),
+      isInvestor
         ? supabaseAdmin
             .from("investments")
             .select("id, project_id, amount, message, status, created_at")
             .eq("investor_id", me.id)
             .order("created_at", { ascending: false })
-        : Promise.resolve({ data: [] as never[] }),
-      supabaseAdmin
-        .from("investments")
-        .select("id, project_id, investor_id, amount, message, status, created_at")
-        .order("created_at", { ascending: false })
-        .limit(80),
-      (mentorLinks.data ?? []).length
+            .limit(40)
+        : empty(),
+      myProjectIdList.length
         ? supabaseAdmin
-            .from("projects")
-            .select("id, title, description, logo_url, telegram_group_url, user_id")
-            .in(
-              "id",
-              (mentorLinks.data ?? []).map((l) => l.project_id),
-            )
-        : Promise.resolve({ data: [] as never[] }),
+            .from("investments")
+            .select("id, project_id, investor_id, amount, message, status, created_at")
+            .in("project_id", myProjectIdList)
+            .order("created_at", { ascending: false })
+            .limit(40)
+        : empty(),
+      empty(),
+      mentorProjectIds.length
+        ? supabaseAdmin.from("projects").select("id, title, description, logo_url, telegram_group_url, user_id").in("id", mentorProjectIds)
+        : empty(),
     ]);
+
+  const childProjectIdList = (childProjects.data ?? []).map((p: { id: string }) => p.id);
+  const parentPendingRows = childProjectIdList.length
+    ? (
+        await supabaseAdmin
+          .from("investments")
+          .select("id, project_id, investor_id, amount, message, status, created_at")
+          .in("project_id", childProjectIdList)
+          .order("created_at", { ascending: false })
+          .limit(40)
+      ).data ?? []
+    : (parentPending.data as never[]);
 
   // names for counterparts
   const ids = new Set<string>();
-  (convos.data ?? []).forEach((c) => {
+  (convos.data ?? []).forEach((c: { user_id: string; mentor_id: string | null }) => {
     if (c.user_id) ids.add(c.user_id);
     if (c.mentor_id) ids.add(c.mentor_id);
   });
-  (teamAds.data ?? []).forEach((p) => p.user_id && ids.add(p.user_id));
+  (teamAds.data ?? []).forEach((p: { user_id: string | null }) => p.user_id && ids.add(p.user_id));
   (investorFeed.data ?? []).forEach((p: { user_id: string | null }) => p.user_id && ids.add(p.user_id));
-  (receivedInvestments.data ?? []).forEach((i) => i.investor_id && ids.add(i.investor_id));
+  (incoming.data ?? []).forEach((i: { investor_id: string }) => i.investor_id && ids.add(i.investor_id));
+  parentPendingRows.forEach((i: { investor_id: string }) => i.investor_id && ids.add(i.investor_id));
+  (mentorProjects.data ?? []).forEach((p: { user_id: string | null }) => p.user_id && ids.add(p.user_id));
   const { data: nameRows } = ids.size
     ? await supabaseAdmin.from("bot_users").select("id, full_name, username").in("id", [...ids])
     : { data: [] as { id: string; full_name: string | null; username: string | null }[] };
@@ -155,32 +197,28 @@ export async function profile(initData: string) {
     names[r.id] = r.full_name ?? r.username ?? "Foydalanuvchi";
   });
 
-  const myProjectIds = new Set((myProjects.data ?? []).map((p) => p.id));
-  const childProjectIds = new Set((childProjects.data ?? []).map((p: { id: string }) => p.id));
-
   return {
     user: {
       id: me.id,
       full_name: me.full_name ?? "Ixtirochi",
-      role: me.role ?? "inventor",
+      role,
       phone: me.phone ?? "",
       is_verified: me.is_verified,
       has_parent: Boolean(me.parent_id),
-      parent_secret: me.role === "parent" ? me.parent_secret : null,
+      parent_secret: role === "parent" ? me.parent_secret : null,
+      age,
+      is_minor: isMinor,
     },
     patents: patents.data ?? [],
     myProjects: myProjects.data ?? [],
     mentors: mentors.data ?? [],
-    conversations: (convos.data ?? []).map((c) => ({
+    conversations: (convos.data ?? []).map((c: { id: string; kind: string; user_id: string; mentor_id: string | null; updated_at: string }) => ({
       id: c.id,
       kind: c.kind,
-      title:
-        c.kind === "ai"
-          ? "AI Mentor"
-          : (names[c.user_id === me.id ? (c.mentor_id ?? "") : c.user_id] ?? "Mentor"),
+      title: c.kind === "ai" ? "AI Mentor" : (names[c.user_id === me.id ? (c.mentor_id ?? "") : c.user_id] ?? "Mentor"),
       updated_at: c.updated_at,
     })),
-    teamAds: (teamAds.data ?? []).map((p) => ({ ...p, owner: names[p.user_id ?? ""] ?? "Ixtirochi" })),
+    teamAds: (teamAds.data ?? []).map((p: { user_id: string | null }) => ({ ...p, owner: names[p.user_id ?? ""] ?? "Ixtirochi" })),
     children: children.data ?? [],
     childProjects: childProjects.data ?? [],
     childPatents: childPatents.data ?? [],
@@ -189,18 +227,15 @@ export async function profile(initData: string) {
       owner: names[p.user_id ?? ""] ?? "Ixtirochi",
     })),
     myInvestments: myInvestments.data ?? [],
-    incomingInvestments: (receivedInvestments.data ?? [])
-      .filter((i) => myProjectIds.has(i.project_id))
-      .map((i) => ({ ...i, investor: names[i.investor_id] ?? "Investor" })),
-    parentPendingInvestments: (receivedInvestments.data ?? [])
-      .filter((i) => childProjectIds.has(i.project_id))
-      .map((i) => ({ ...i, investor: names[i.investor_id] ?? "Investor" })),
+    incomingInvestments: (incoming.data ?? []).map((i: { investor_id: string }) => ({ ...i, investor: names[i.investor_id] ?? "Investor" })),
+    parentPendingInvestments: parentPendingRows.map((i: { investor_id: string }) => ({ ...i, investor: names[i.investor_id] ?? "Investor" })),
     mentorProjects: (mentorProjects.data ?? []).map((p: { user_id: string | null }) => ({
       ...p,
       owner: names[p.user_id ?? ""] ?? "Ixtirochi",
     })),
   };
 }
+
 
 export async function saveProject(
   initData: string,

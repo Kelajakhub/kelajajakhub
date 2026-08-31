@@ -368,9 +368,23 @@ async function aiMentor(chatId: number, question: string) {
     return sendMessage(chatId, "AI mentor javob bermadi, keyinroq urinib ko'ring.");
   }
   const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-  const answer = json.choices?.[0]?.message?.content ?? "Javob topilmadi.";
+  const answer = stripMarkdown(json.choices?.[0]?.message?.content ?? "Javob topilmadi.");
   return sendMessage(chatId, answer);
 }
+
+/** AI javoblaridan markdown belgilarini (**, *, `, #) olib tashlaydi. */
+export function stripMarkdown(text: string) {
+  return text
+    .replace(/```[a-zA-Z]*\n?/g, "")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\*\*\*(.+?)\*\*\*/g, "$1")
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/(^|[\s(])\*(?!\s)([^*\n]+?)\*(?=[\s.,!?)]|$)/g, "$1$2")
+    .replace(/^\s*[*+]\s+/gm, "• ")
+    .replace(/^#{1,6}\s*/gm, "")
+    .replace(/__(.+?)__/g, "$1")
+    .trim();
+
 
 async function listPosts(chatId: number, kind: string, emptyText: string, title: string) {
   const { data } = await supabaseAdmin
