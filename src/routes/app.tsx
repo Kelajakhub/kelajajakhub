@@ -60,7 +60,7 @@ type Profile = {
   teamAds: { id: string; title: string; team_note: string | null; telegram_group_url: string | null; owner: string }[];
   children: { id: string; full_name: string | null; phone: string | null; is_verified: boolean }[];
   childProjects: Project[];
-  childPatents: { id: string; title: string; status: string; digital_seal: string }[];
+  childPatents: { id: string; title: string; status: string; digital_seal: string; consent_url?: string | null }[];
   investorFeed: { id: string; title: string; description: string | null; logo_url: string | null; funding_goal: string | null; owner: string }[];
   myInvestments: { id: string; project_id: string; amount: string; status: string }[];
   incomingInvestments: { id: string; amount: string; status: string; investor: string; message: string | null }[];
