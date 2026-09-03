@@ -384,6 +384,9 @@ export function stripMarkdown(text: string) {
     .replace(/^#{1,6}\s*/gm, "")
     .replace(/__(.+?)__/g, "$1")
     .trim();
+}
+
+
 
 
 async function listPosts(chatId: number, kind: string, emptyText: string, title: string) {
