@@ -15,6 +15,7 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as ApiPublicMiniappLabRouteImport } from './routes/api/public/miniapp/lab'
 import { Route as ApiPublicMiniappProfileRouteImport } from './routes/api/public/miniapp/profile'
 import { Route as ApiPublicMiniappRpcRouteImport } from './routes/api/public/miniapp/rpc'
+import { Route as ApiPublicOneidStartRouteImport } from './routes/api/public/oneid/start'
 import { Route as ApiPublicTelegramSetupRouteImport } from './routes/api/public/telegram/setup'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
 
@@ -48,6 +49,11 @@ const ApiPublicMiniappRpcRoute = ApiPublicMiniappRpcRouteImport.update({
   path: '/api/public/miniapp/rpc',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicOneidStartRoute = ApiPublicOneidStartRouteImport.update({
+  id: '/api/public/oneid/start',
+  path: '/api/public/oneid/start',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicTelegramSetupRoute = ApiPublicTelegramSetupRouteImport.update({
   id: '/api/public/telegram/setup',
   path: '/api/public/telegram/setup',
@@ -67,6 +73,7 @@ export interface FileRoutesByFullPath {
   '/api/public/miniapp/lab': typeof ApiPublicMiniappLabRoute
   '/api/public/miniapp/profile': typeof ApiPublicMiniappProfileRoute
   '/api/public/miniapp/rpc': typeof ApiPublicMiniappRpcRoute
+  '/api/public/oneid/start': typeof ApiPublicOneidStartRoute
   '/api/public/telegram/setup': typeof ApiPublicTelegramSetupRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
@@ -77,6 +84,7 @@ export interface FileRoutesByTo {
   '/api/public/miniapp/lab': typeof ApiPublicMiniappLabRoute
   '/api/public/miniapp/profile': typeof ApiPublicMiniappProfileRoute
   '/api/public/miniapp/rpc': typeof ApiPublicMiniappRpcRoute
+  '/api/public/oneid/start': typeof ApiPublicOneidStartRoute
   '/api/public/telegram/setup': typeof ApiPublicTelegramSetupRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
@@ -88,6 +96,7 @@ export interface FileRoutesById {
   '/api/public/miniapp/lab': typeof ApiPublicMiniappLabRoute
   '/api/public/miniapp/profile': typeof ApiPublicMiniappProfileRoute
   '/api/public/miniapp/rpc': typeof ApiPublicMiniappRpcRoute
+  '/api/public/oneid/start': typeof ApiPublicOneidStartRoute
   '/api/public/telegram/setup': typeof ApiPublicTelegramSetupRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
@@ -100,6 +109,7 @@ export interface FileRouteTypes {
     | '/api/public/miniapp/lab'
     | '/api/public/miniapp/profile'
     | '/api/public/miniapp/rpc'
+    | '/api/public/oneid/start'
     | '/api/public/telegram/setup'
     | '/api/public/telegram/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -110,6 +120,7 @@ export interface FileRouteTypes {
     | '/api/public/miniapp/lab'
     | '/api/public/miniapp/profile'
     | '/api/public/miniapp/rpc'
+    | '/api/public/oneid/start'
     | '/api/public/telegram/setup'
     | '/api/public/telegram/webhook'
   id:
@@ -120,6 +131,7 @@ export interface FileRouteTypes {
     | '/api/public/miniapp/lab'
     | '/api/public/miniapp/profile'
     | '/api/public/miniapp/rpc'
+    | '/api/public/oneid/start'
     | '/api/public/telegram/setup'
     | '/api/public/telegram/webhook'
   fileRoutesById: FileRoutesById
@@ -131,6 +143,7 @@ export interface RootRouteChildren {
   ApiPublicMiniappLabRoute: typeof ApiPublicMiniappLabRoute
   ApiPublicMiniappProfileRoute: typeof ApiPublicMiniappProfileRoute
   ApiPublicMiniappRpcRoute: typeof ApiPublicMiniappRpcRoute
+  ApiPublicOneidStartRoute: typeof ApiPublicOneidStartRoute
   ApiPublicTelegramSetupRoute: typeof ApiPublicTelegramSetupRoute
   ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
 }
@@ -179,6 +192,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicMiniappRpcRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/oneid/start': {
+      id: '/api/public/oneid/start'
+      path: '/api/public/oneid/start'
+      fullPath: '/api/public/oneid/start'
+      preLoaderRoute: typeof ApiPublicOneidStartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/telegram/setup': {
       id: '/api/public/telegram/setup'
       path: '/api/public/telegram/setup'
@@ -203,6 +223,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicMiniappLabRoute: ApiPublicMiniappLabRoute,
   ApiPublicMiniappProfileRoute: ApiPublicMiniappProfileRoute,
   ApiPublicMiniappRpcRoute: ApiPublicMiniappRpcRoute,
+  ApiPublicOneidStartRoute: ApiPublicOneidStartRoute,
   ApiPublicTelegramSetupRoute: ApiPublicTelegramSetupRoute,
   ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
 }
