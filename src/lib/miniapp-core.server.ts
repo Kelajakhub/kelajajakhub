@@ -1,6 +1,7 @@
 import { createHmac } from "node:crypto";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { sendMessage } from "@/lib/bot.server";
+import { sendMessage, stripMarkdown } from "@/lib/bot.server";
+import { consentUrl } from "@/lib/oneid.server";
 
 /** Verify Telegram WebApp initData and return the telegram user id. */
 export function verifyInitData(initData: string): number {
@@ -221,7 +222,10 @@ export async function profile(initData: string) {
     teamAds: (teamAds.data ?? []).map((p: { user_id: string | null }) => ({ ...p, owner: names[p.user_id ?? ""] ?? "Ixtirochi" })),
     children: children.data ?? [],
     childProjects: childProjects.data ?? [],
-    childPatents: childPatents.data ?? [],
+    childPatents: (childPatents.data ?? []).map((p: { id: string; status: string }) => ({
+      ...p,
+      consent_url: p.status === "pending_parent" ? consentUrl(p.id, me.id) : null,
+    })),
     investorFeed: (investorFeed.data ?? []).map((p: { user_id: string | null }) => ({
       ...p,
       owner: names[p.user_id ?? ""] ?? "Ixtirochi",
@@ -386,7 +390,7 @@ async function aiReply(history: { sender_role: string; body: string }[]) {
   });
   if (!res.ok) return "AI mentor javob bermadi, keyinroq urinib ko'ring.";
   const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-  return json.choices?.[0]?.message?.content ?? "";
+  return stripMarkdown(json.choices?.[0]?.message?.content ?? "");
 }
 
 export async function runLab(initData: string, code: string) {
@@ -440,4 +444,43 @@ export async function parentDecision(initData: string, investmentId: string, app
   await notify(owner.id, approve ? `✅ Ota-onangiz «${project?.title}» uchun investitsiyaga rozilik berdi.` : `❌ Ota-onangiz investitsiya taklifini rad etdi.`);
   await notify(inv.investor_id, approve ? `✅ «${project?.title}» loyihasi uchun taklifingiz ota-ona tomonidan tasdiqlandi.` : `❌ «${project?.title}» uchun taklifingiz rad etildi.`);
   return { ok: true };
+}
+
+
+/** Called from the OneID callback after the guardian is identified by sso.egov.uz. */
+export async function applyParentConsent(
+  patentId: string,
+  parentId: string,
+  identity: { pinfl: string | null; full_name: string | null },
+) {
+  const { data: patent } = await supabaseAdmin
+    .from("patent_applications")
+    .select("id, title, status, user_id, telegram_id, digital_seal")
+    .eq("id", patentId)
+    .maybeSingle();
+  if (!patent) throw new Error("Ariza topilmadi");
+  const { data: child } = await supabaseAdmin
+    .from("bot_users")
+    .select("id, parent_id, full_name, telegram_id")
+    .eq("id", patent.user_id ?? "")
+    .maybeSingle();
+  if (!child || child.parent_id !== parentId) throw new Error("Bu ariza sizning farzandingizga tegishli emas");
+
+  await supabaseAdmin
+    .from("patent_applications")
+    .update({
+      status: "new",
+      parent_consent_at: new Date().toISOString(),
+      parent_consent_pinfl: identity.pinfl,
+      parent_consent_name: identity.full_name,
+      parent_consent_by: parentId,
+    })
+    .eq("id", patentId);
+
+  await notify(
+    patent.user_id ?? "",
+    `✅ Ota-onangiz «${patent.title}» ixtirosi uchun OneID orqali rasmiy rozilik berdi.\n\n🔒 Raqamli muhr: ${patent.digital_seal}\nAriza Adliya vazirligi va Intellektual mulk agentligiga ko'rib chiqish uchun yuborildi.`,
+  );
+  await notify(parentId, `🏛 «${patent.title}» arizasi uchun roziligingiz qayd etildi. Rahmat!`);
+  return { ok: true, title: patent.title };
 }

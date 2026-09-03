@@ -60,7 +60,7 @@ type Profile = {
   teamAds: { id: string; title: string; team_note: string | null; telegram_group_url: string | null; owner: string }[];
   children: { id: string; full_name: string | null; phone: string | null; is_verified: boolean }[];
   childProjects: Project[];
-  childPatents: { id: string; title: string; status: string; digital_seal: string }[];
+  childPatents: { id: string; title: string; status: string; digital_seal: string; consent_url?: string | null }[];
   investorFeed: { id: string; title: string; description: string | null; logo_url: string | null; funding_goal: string | null; owner: string }[];
   myInvestments: { id: string; project_id: string; amount: string; status: string }[];
   incomingInvestments: { id: string; amount: string; status: string; investor: string; message: string | null }[];
@@ -802,13 +802,30 @@ function ParentTab({
           <Card key={p.id}>
             <p className="text-[15px] font-semibold">{p.title}</p>
             <p className="mt-1 text-[12px] text-muted-foreground">
-              {p.status} · <code className="text-primary">{p.digital_seal}</code>
+              {statusLabel(p.status)} · <code className="text-primary">{p.digital_seal}</code>
             </p>
+            {p.status === "pending_parent" && p.consent_url && (
+              <>
+                <p className="mt-2 text-[13px] text-muted-foreground">
+                  Ariza sizning rasmiy roziligingizni kutmoqda. OneID orqali tasdiqlagach, hujjatlar Adliya vazirligi va
+                  Intellektual mulk agentligiga yuboriladi.
+                </p>
+                <a
+                  href={p.consent_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 block rounded-xl bg-primary py-2.5 text-center text-[14px] font-semibold text-primary-foreground"
+                >
+                  🏛 OneID orqali kiring va arizani tasdiqlang
+                </a>
+              </>
+            )}
           </Card>
         ))
       ) : (
         <Empty>Patent yo'q.</Empty>
       )}
+
 
       <SectionTitle>Rozilik kutayotgan investitsiyalar</SectionTitle>
       {data.parentPendingInvestments.length ? (
