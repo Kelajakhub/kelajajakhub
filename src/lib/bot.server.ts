@@ -652,20 +652,46 @@ async function handleState(chatId: number, user: BotUser, text: string): Promise
     case "patent_desc": {
       const title = String((user.state_data as { title?: string }).title ?? "Nomsiz ixtiro");
       const digital_seal = seal(`${chatId}:${title}:${text}`);
-      await supabaseAdmin.from("patent_applications").insert({
-        user_id: user.id,
-        telegram_id: chatId,
-        title,
-        description: text,
-        digital_seal,
-        status: "new",
-      });
+      const needsParent = Boolean(user.parent_id);
+      const { data: created } = await supabaseAdmin
+        .from("patent_applications")
+        .insert({
+          user_id: user.id,
+          telegram_id: chatId,
+          title,
+          description: text,
+          digital_seal,
+          status: needsParent ? "pending_parent" : "new",
+        })
+        .select("id")
+        .single();
       const fresh = await upsertUser(chatId, { state: "ready", state_data: {} });
       await sendMessage(
         chatId,
-        `✅ <b>Arizangiz qabul qilindi va raqamli muhrlandi.</b>\n\n📜 Ixtiro: <b>${title}</b>\n🔒 Raqamli muhr: <code>${digital_seal}</code>\n\nEkspertizadan so'ng hujjatlar Adliya vazirligi va Intellektual mulk agentligiga rasmiy xat bilan yuboriladi.`,
+        needsParent
+          ? `✅ <b>Arizangiz raqamli muhrlandi.</b>\n\n📜 Ixtiro: <b>${title}</b>\n🔒 Raqamli muhr: <code>${digital_seal}</code>\n\n🛡 Siz 16 yoshga to'lmaganingiz uchun ariza <b>ota-ona tasdig'i</b>ni kutmoqda. Ota-onangizga bildirishnoma yuborildi — u OneID orqali tasdiqlagach, hujjatlar rasmiy organlarga yuboriladi.`
+          : `✅ <b>Arizangiz qabul qilindi va raqamli muhrlandi.</b>\n\n📜 Ixtiro: <b>${title}</b>\n🔒 Raqamli muhr: <code>${digital_seal}</code>\n\nEkspertizadan so'ng hujjatlar Adliya vazirligi va Intellektual mulk agentligiga rasmiy xat bilan yuboriladi.`,
         menuFor(fresh.role),
       );
+      if (needsParent && created?.id && user.parent_id) {
+        const { consentUrl } = await import("@/lib/oneid.server");
+        const { data: parent } = await supabaseAdmin
+          .from("bot_users")
+          .select("telegram_id")
+          .eq("id", user.parent_id)
+          .maybeSingle();
+        if (parent?.telegram_id) {
+          await sendMessage(
+            Number(parent.telegram_id),
+            `🛡 <b>Ota-ona tasdig'i kerak</b>\n\nFarzandingiz ${user.full_name ?? ""} «<b>${title}</b>» ixtirosi uchun patent arizasini tayyorladi.\n\nQonuniy vakil sifatida OneID orqali tasdiqlang — shundan keyin ariza rasmiy organlarga yuboriladi.`,
+            {
+              reply_markup: {
+                inline_keyboard: [[{ text: "🏛 OneID orqali tasdiqlash", url: consentUrl(created.id, user.parent_id) }]],
+              },
+            },
+          );
+        }
+      }
       return true;
     }
     case "team_post":
