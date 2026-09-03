@@ -333,6 +333,10 @@ export type Database = {
           digital_seal: string
           id: string
           ministry_ref: string | null
+          parent_consent_at: string | null
+          parent_consent_by: string | null
+          parent_consent_name: string | null
+          parent_consent_pinfl: string | null
           sent_at: string | null
           status: string
           telegram_id: number | null
@@ -345,6 +349,10 @@ export type Database = {
           digital_seal: string
           id?: string
           ministry_ref?: string | null
+          parent_consent_at?: string | null
+          parent_consent_by?: string | null
+          parent_consent_name?: string | null
+          parent_consent_pinfl?: string | null
           sent_at?: string | null
           status?: string
           telegram_id?: number | null
@@ -357,6 +365,10 @@ export type Database = {
           digital_seal?: string
           id?: string
           ministry_ref?: string | null
+          parent_consent_at?: string | null
+          parent_consent_by?: string | null
+          parent_consent_name?: string | null
+          parent_consent_pinfl?: string | null
           sent_at?: string | null
           status?: string
           telegram_id?: number | null
