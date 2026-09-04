@@ -121,3 +121,54 @@ export const setupTelegramWebhook = createServerFn({ method: "POST" })
     });
     return { setWebhook, commands: await cmdRes.json() };
   });
+
+export const adminDeleteUser = createServerFn({ method: "POST" })
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    const core = await import("./admin-core.server");
+    return core.deleteUser(data.id);
+  });
+
+export const adminSetUserRole = createServerFn({ method: "POST" })
+  .inputValidator((d) =>
+    z.object({ id: z.string().uuid(), role: z.enum(["inventor", "mentor", "investor", "parent"]) }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    const core = await import("./admin-core.server");
+    return core.setUserRole(data.id, data.role);
+  });
+
+export const adminSetUserVerified = createServerFn({ method: "POST" })
+  .inputValidator((d) => z.object({ id: z.string().uuid(), verified: z.boolean() }).parse(d))
+  .handler(async ({ data }) => {
+    const core = await import("./admin-core.server");
+    return core.setUserVerified(data.id, data.verified);
+  });
+
+export const adminDeleteProject = createServerFn({ method: "POST" })
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    const core = await import("./admin-core.server");
+    return core.deleteProject(data.id);
+  });
+
+export const adminDeletePatent = createServerFn({ method: "POST" })
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    const core = await import("./admin-core.server");
+    return core.deletePatent(data.id);
+  });
+
+export const adminDeleteWaitlist = createServerFn({ method: "POST" })
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    const core = await import("./admin-core.server");
+    return core.deleteWaitlist(data.id);
+  });
+
+export const adminMessageUser = createServerFn({ method: "POST" })
+  .inputValidator((d) => z.object({ id: z.string().uuid(), text: z.string().min(1).max(3000) }).parse(d))
+  .handler(async ({ data }) => {
+    const core = await import("./admin-core.server");
+    return core.messageUser(data.id, data.text);
+  });
