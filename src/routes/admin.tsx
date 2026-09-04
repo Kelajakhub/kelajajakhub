@@ -136,40 +136,34 @@ function AdminPage() {
             <h1 className="text-2xl font-bold">KelajakHub boshqaruvi</h1>
             <p className="text-xs text-muted-foreground">{email}</p>
           </div>
-          <button
-            onClick={async () => {
-              await logout();
-              setEmail(null);
-              setData(null);
-            }}
-            className="rounded-full border border-border px-4 py-2 text-sm"
-          >
-            Chiqish
-          </button>
+          <div className="flex items-center gap-2">
+            <UiSwitch />
+            <button onClick={() => void refresh()} className="rounded-full border border-border px-4 py-2 text-sm">
+              Yangilash
+            </button>
+            <button
+              onClick={async () => {
+                await logout();
+                setEmail(null);
+                setData(null);
+              }}
+              className="rounded-full border border-border px-4 py-2 text-sm"
+            >
+              Chiqish
+            </button>
+          </div>
         </header>
 
         {data && (
           <>
-            <div className="grid gap-4 sm:grid-cols-4">
-              {[
-                ["Bot foydalanuvchilari", data.users.length],
-                ["Patent arizalari", data.patents.length],
-                ["Kutish ro'yxati", data.waitlist.length],
-                ["Kanallar", data.channels.length],
-              ].map(([label, value]) => (
-                <div key={String(label)} className="panel p-5">
-                  <p className="text-xs text-muted-foreground">{label}</p>
-                  <p className="mt-1 font-display text-2xl font-bold text-primary">{value}</p>
-                </div>
-              ))}
-            </div>
-
+            <StatsSection stats={data.stats} />
             <PatentSection patents={data.patents} onChange={refresh} />
+            <ProjectsSection projects={data.projects} users={data.users} onChange={refresh} />
             <ChannelSection channels={data.channels} onChange={refresh} />
             <SettingsSection settings={data.settings} onChange={refresh} />
             <BroadcastSection />
-            <UsersSection users={data.users} />
-            <WaitlistSection waitlist={data.waitlist} />
+            <UsersSection users={data.users} onChange={refresh} />
+            <WaitlistSection waitlist={data.waitlist} onChange={refresh} />
           </>
         )}
       </div>
