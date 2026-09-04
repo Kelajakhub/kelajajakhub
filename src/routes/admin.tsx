@@ -175,6 +175,7 @@ function PatentSection({ patents, onChange }: { patents: Dash["patents"]; onChan
   const send = useServerFn(adminSendToMinistry);
   const preview = useServerFn(adminLetterPreview);
   const patented = useServerFn(adminMarkPatented);
+  const del = useServerFn(adminDeletePatent);
   const [letter, setLetter] = useState<string | null>(null);
 
   return (
