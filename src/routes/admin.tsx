@@ -376,10 +376,85 @@ function BroadcastSection() {
   );
 }
 
-function UsersSection({ users }: { users: Dash["users"] }) {
+const STAT_LABELS: [keyof Dash["stats"], string][] = [
+  ["users", "Foydalanuvchilar"],
+  ["newUsers7d", "7 kunda yangi"],
+  ["verified", "Tasdiqlangan"],
+  ["phoneVerified", "Raqami tasdiqlangan"],
+  ["inventors", "Ixtirochilar"],
+  ["minors", "16 yoshgacha"],
+  ["mentors", "Mentorlar"],
+  ["investors", "Investorlar"],
+  ["parents", "Ota-onalar"],
+  ["projects", "Loyihalar"],
+  ["patents", "Patent arizalari"],
+  ["patentsPendingParent", "Ota-ona tasdig'i kutilmoqda"],
+  ["patentsSent", "Vazirlikka yuborilgan"],
+  ["patentsPatented", "Patent olgan"],
+  ["investments", "Investitsiya takliflari"],
+  ["messages", "Chat xabarlari"],
+];
+
+function StatsSection({ stats }: { stats: Dash["stats"] }) {
+  return (
+    <section className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      {STAT_LABELS.map(([key, label]) => (
+        <div key={key} className="panel p-4">
+          <p className="text-[11px] text-muted-foreground">{label}</p>
+          <p className="mt-1 font-display text-2xl font-bold text-primary">{stats[key]}</p>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+const ROLES = ["inventor", "mentor", "investor", "parent"] as const;
+
+function UsersSection({ users, onChange }: { users: Dash["users"]; onChange: () => void }) {
+  const del = useServerFn(adminDeleteUser);
+  const setRole = useServerFn(adminSetUserRole);
+  const setVerified = useServerFn(adminSetUserVerified);
+  const message = useServerFn(adminMessageUser);
+  const [q, setQ] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+
+  const needle = q.trim().toLowerCase();
+  const filtered = users.filter((u) => {
+    if (roleFilter !== "all" && u.role !== roleFilter) return false;
+    if (!needle) return true;
+    return [u.full_name, u.username, u.phone, String(u.telegram_id), u.role]
+      .filter(Boolean)
+      .some((v) => String(v).toLowerCase().includes(needle));
+  });
+
   return (
     <section className="panel p-6">
-      <h2 className="text-lg font-semibold">Bot foydalanuvchilari</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold">Foydalanuvchilar boshqaruvi</h2>
+        <div className="flex flex-wrap gap-2">
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Qidirish: ism, telefon, username..."
+            className="rounded-xl border border-input bg-background px-3 py-2 text-sm"
+          />
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="rounded-xl border border-input bg-background px-3 py-2 text-sm"
+          >
+            <option value="all">Barcha rollar</option>
+            {ROLES.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <p className="mt-2 text-xs text-muted-foreground">{filtered.length} ta yozuv</p>
+
       <div className="mt-4 overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead className="text-xs text-muted-foreground">
@@ -387,18 +462,91 @@ function UsersSection({ users }: { users: Dash["users"] }) {
               <th className="py-2">Ism</th>
               <th className="py-2">Rol</th>
               <th className="py-2">Telefon</th>
+              <th className="py-2">Yosh</th>
               <th className="py-2">Holat</th>
+              <th className="py-2">Amallar</th>
             </tr>
           </thead>
           <tbody>
-            {users.map((u) => (
-              <tr key={u.id} className="border-t border-border">
-                <td className="py-2">{u.full_name ?? "-"}</td>
-                <td className="py-2">{u.role ?? "-"}</td>
+            {filtered.map((u) => (
+              <tr key={u.id} className="border-t border-border align-middle">
+                <td className="py-2">
+                  {u.full_name ?? "-"}
+                  {u.username ? <span className="block text-xs text-muted-foreground">@{u.username}</span> : null}
+                </td>
+                <td className="py-2">
+                  <select
+                    value={ROLES.includes((u.role ?? "") as (typeof ROLES)[number]) ? (u.role as string) : ""}
+                    onChange={async (e) => {
+                      await setRole({ data: { id: u.id, role: e.target.value as (typeof ROLES)[number] } });
+                      toast.success("Rol o'zgartirildi");
+                      onChange();
+                    }}
+                    className="rounded-lg border border-input bg-background px-2 py-1 text-xs"
+                  >
+                    <option value="">—</option>
+                    {ROLES.map((r) => (
+                      <option key={r} value={r}>
+                        {r}
+                      </option>
+                    ))}
+                  </select>
+                </td>
                 <td className="py-2">{u.phone ?? "-"}</td>
+                <td className="py-2">{u.birth_year ? new Date().getFullYear() - u.birth_year : "-"}</td>
                 <td className="py-2">{u.is_verified ? "✅" : "⏳"}</td>
+                <td className="py-2">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={async () => {
+                        await setVerified({ data: { id: u.id, verified: !u.is_verified } });
+                        onChange();
+                      }}
+                      className="rounded-full border border-border px-3 py-1 text-xs"
+                    >
+                      {u.is_verified ? "Bekor qilish" : "Tasdiqlash"}
+                    </button>
+                    <button
+                      onClick={async () => {
+                        const text = prompt("Xabar matni:");
+                        if (!text) return;
+                        try {
+                          await message({ data: { id: u.id, text } });
+                          toast.success("Xabar yuborildi");
+                        } catch {
+                          toast.error("Xabar yuborilmadi");
+                        }
+                      }}
+                      className="rounded-full border border-border px-3 py-1 text-xs"
+                    >
+                      Xabar
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!confirm(`${u.full_name ?? "Foydalanuvchi"} butunlay o'chirilsinmi?`)) return;
+                        try {
+                          await del({ data: { id: u.id } });
+                          toast.success("O'chirildi");
+                          onChange();
+                        } catch {
+                          toast.error("O'chirilmadi");
+                        }
+                      }}
+                      className="rounded-full border border-destructive px-3 py-1 text-xs text-destructive"
+                    >
+                      O'chirish
+                    </button>
+                  </div>
+                </td>
               </tr>
             ))}
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan={6} className="py-4 text-sm text-muted-foreground">
+                  Hech narsa topilmadi.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -406,14 +554,85 @@ function UsersSection({ users }: { users: Dash["users"] }) {
   );
 }
 
-function WaitlistSection({ waitlist }: { waitlist: Dash["waitlist"] }) {
+function ProjectsSection({
+  projects,
+  users,
+  onChange,
+}: {
+  projects: Dash["projects"];
+  users: Dash["users"];
+  onChange: () => void;
+}) {
+  const del = useServerFn(adminDeleteProject);
+  const [q, setQ] = useState("");
+  const byId = new Map(users.map((u) => [u.id, u]));
+  const needle = q.trim().toLowerCase();
+  const filtered = projects.filter(
+    (p) => !needle || `${p.title} ${p.description}`.toLowerCase().includes(needle),
+  );
+
+  return (
+    <section className="panel p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold">Loyihalar</h2>
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Loyiha qidirish..."
+          className="rounded-xl border border-input bg-background px-3 py-2 text-sm"
+        />
+      </div>
+      <div className="mt-4 space-y-3">
+        {filtered.map((p) => (
+          <article key={p.id} className="rounded-xl border border-border p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="font-semibold">{p.title}</h3>
+              <button
+                onClick={async () => {
+                  if (!confirm(`«${p.title}» loyihasi o'chirilsinmi?`)) return;
+                  await del({ data: { id: p.id } });
+                  toast.success("Loyiha o'chirildi");
+                  onChange();
+                }}
+                className="rounded-full border border-destructive px-3 py-1 text-xs text-destructive"
+              >
+                O'chirish
+              </button>
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">{p.description}</p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Muallif: {byId.get(p.user_id)?.full_name ?? "—"}
+              {p.funding_goal ? ` · maqsad: ${p.funding_goal}` : ""}
+              {p.looking_for_team ? " · jamoa izlanmoqda" : ""}
+            </p>
+          </article>
+        ))}
+        {filtered.length === 0 && <p className="text-sm text-muted-foreground">Loyiha yo'q.</p>}
+      </div>
+    </section>
+  );
+}
+
+function WaitlistSection({ waitlist, onChange }: { waitlist: Dash["waitlist"]; onChange: () => void }) {
+  const del = useServerFn(adminDeleteWaitlist);
   return (
     <section className="panel p-6">
       <h2 className="text-lg font-semibold">Kutish ro'yxati</h2>
       <ul className="mt-4 space-y-2 text-sm">
         {waitlist.map((w) => (
-          <li key={w.id} className="rounded-xl border border-border px-4 py-2">
-            {w.full_name} · <span className="text-muted-foreground">{w.role}</span> · {w.contact}
+          <li key={w.id} className="flex items-center justify-between rounded-xl border border-border px-4 py-2">
+            <span>
+              {w.full_name} · <span className="text-muted-foreground">{w.role}</span> · {w.contact}
+            </span>
+            <button
+              onClick={async () => {
+                await del({ data: { id: w.id } });
+                onChange();
+              }}
+              className="text-xs text-destructive"
+            >
+              O'chirish
+            </button>
           </li>
         ))}
         {waitlist.length === 0 && <li className="text-sm text-muted-foreground">Bo'sh.</li>}
