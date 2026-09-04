@@ -224,6 +224,17 @@ function PatentSection({ patents, onChange }: { patents: Dash["patents"]; onChan
               >
                 Patent olindi
               </button>
+              <button
+                onClick={async () => {
+                  if (!confirm(`«${p.title}» arizasini butunlay o'chirasizmi?`)) return;
+                  await del({ data: { id: p.id } });
+                  toast.success("Ariza o'chirildi");
+                  onChange();
+                }}
+                className="rounded-full border border-destructive px-4 py-1.5 text-xs text-destructive"
+              >
+                O'chirish
+              </button>
             </div>
           </article>
         ))}
