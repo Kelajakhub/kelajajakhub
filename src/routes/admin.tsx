@@ -6,15 +6,23 @@ import {
   adminAddChannel,
   adminBroadcast,
   adminDashboard,
+  adminDeletePatent,
+  adminDeleteProject,
+  adminDeleteUser,
+  adminDeleteWaitlist,
   adminLetterPreview,
   adminLogin,
   adminLogout,
   adminMarkPatented,
   adminMe,
+  adminMessageUser,
   adminRemoveChannel,
   adminSaveSetting,
   adminSendToMinistry,
+  adminSetUserRole,
+  adminSetUserVerified,
 } from "@/lib/admin.functions";
+import { UiSwitch } from "@/lib/i18n";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
