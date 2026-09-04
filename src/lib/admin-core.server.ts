@@ -55,22 +55,110 @@ async function requireAdmin() {
 
 export async function dashboard() {
   await requireAdmin();
-  const [users, patents, waitlist, channels, settings, posts] = await Promise.all([
-    supabaseAdmin.from("bot_users").select("*").order("created_at", { ascending: false }).limit(300),
+  const [users, patents, waitlist, channels, settings, posts, projects, investments, messages] = await Promise.all([
+    supabaseAdmin.from("bot_users").select("*").order("created_at", { ascending: false }).limit(500),
     supabaseAdmin.from("patent_applications").select("*").order("created_at", { ascending: false }).limit(300),
     supabaseAdmin.from("waitlist").select("*").order("created_at", { ascending: false }).limit(300),
     supabaseAdmin.from("channels").select("*").order("created_at", { ascending: false }),
     supabaseAdmin.from("app_settings").select("*"),
     supabaseAdmin.from("posts").select("*").order("created_at", { ascending: false }).limit(200),
+    supabaseAdmin.from("projects").select("*").order("created_at", { ascending: false }).limit(300),
+    supabaseAdmin.from("investments").select("*").order("created_at", { ascending: false }).limit(300),
+    supabaseAdmin.from("messages").select("id", { count: "exact", head: true }),
   ]);
+
+  const u = users.data ?? [];
+  const p = patents.data ?? [];
+  const inv = investments.data ?? [];
+  const since = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const countRole = (role: string) => u.filter((x) => x.role === role).length;
+
   return {
-    users: users.data ?? [],
-    patents: patents.data ?? [],
+    users: u,
+    patents: p,
     waitlist: waitlist.data ?? [],
     channels: channels.data ?? [],
     settings: Object.fromEntries((settings.data ?? []).map((s) => [s.key, s.value])),
     posts: posts.data ?? [],
+    projects: projects.data ?? [],
+    investments: inv,
+    stats: {
+      users: u.length,
+      verified: u.filter((x) => x.is_verified).length,
+      phoneVerified: u.filter((x) => x.phone_verified).length,
+      newUsers7d: u.filter((x) => new Date(x.created_at).getTime() > since).length,
+      inventors: countRole("inventor"),
+      mentors: countRole("mentor"),
+      investors: countRole("investor"),
+      parents: countRole("parent"),
+      minors: u.filter((x) => x.birth_year && new Date().getFullYear() - x.birth_year < 16).length,
+      projects: (projects.data ?? []).length,
+      patents: p.length,
+      patentsPendingParent: p.filter((x) => x.status === "pending_parent").length,
+      patentsSent: p.filter((x) => x.status === "sent").length,
+      patentsPatented: p.filter((x) => x.status === "patented").length,
+      investments: inv.length,
+      messages: messages.count ?? 0,
+    },
   };
+}
+
+export async function deleteUser(id: string) {
+  await requireAdmin();
+  const { error } = await supabaseAdmin.from("bot_users").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  return { ok: true as const };
+}
+
+export async function setUserRole(id: string, role: string) {
+  await requireAdmin();
+  const { error } = await supabaseAdmin
+    .from("bot_users")
+    .update({ role, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  return { ok: true as const };
+}
+
+export async function setUserVerified(id: string, verified: boolean) {
+  await requireAdmin();
+  const { error } = await supabaseAdmin
+    .from("bot_users")
+    .update({ is_verified: verified, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  return { ok: true as const };
+}
+
+export async function deleteProject(id: string) {
+  await requireAdmin();
+  await supabaseAdmin.from("investments").delete().eq("project_id", id);
+  await supabaseAdmin.from("mentor_links").delete().eq("project_id", id);
+  const { error } = await supabaseAdmin.from("projects").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  return { ok: true as const };
+}
+
+export async function deletePatent(id: string) {
+  await requireAdmin();
+  const { error } = await supabaseAdmin.from("patent_applications").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  return { ok: true as const };
+}
+
+export async function deleteWaitlist(id: string) {
+  await requireAdmin();
+  await supabaseAdmin.from("waitlist").delete().eq("id", id);
+  return { ok: true as const };
+}
+
+export async function messageUser(id: string, text: string) {
+  await requireAdmin();
+  const { data: user } = await supabaseAdmin.from("bot_users").select("telegram_id").eq("id", id).maybeSingle();
+  if (!user) throw new Error("Foydalanuvchi topilmadi");
+  const { sendMessage } = await import("./bot.server");
+  await sendMessage(Number(user.telegram_id), text);
+  return { ok: true as const };
 }
 
 export async function addChannel(input: { chat_id: string; title: string; url: string }) {
