@@ -216,7 +216,7 @@ function MiniApp() {
               key={t.id}
               onClick={() => setTab(t.id)}
               className={`flex flex-1 flex-col items-center gap-1 rounded-xl py-1.5 text-[10px] font-medium transition ${
-                tab === t.id ? "text-primary" : "text-muted-foreground"
+                activeTab === t.id ? "text-primary" : "text-muted-foreground"
               }`}
             >
               <span className="text-[18px] leading-none">{t.icon}</span>
