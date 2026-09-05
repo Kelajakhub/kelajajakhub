@@ -158,9 +158,9 @@ const en: Dict = {
   "nav.live": "Platform is live",
   "nav.openBot": "Open bot",
   "hero.badge": "Direct routing system to the Ministry and the Intellectual Property Agency",
-  "hero.title1": "Submit your idea and take it to",
-  "hero.titleGold": "official patent level",
-  "hero.title2": "!",
+  "hero.title1": "Submit your idea and take it to the",
+  "hero.titleGold": "official patent level!",
+  "hero.title2": "",
   "hero.text":
     "KelajakHub digitally seals and documents inventions of young inventors and startups, then submits them to the relevant ministry and patent offices.",
   "hero.cta": "Submit your invention now",
@@ -301,8 +301,8 @@ const ru: Dict = {
   "nav.openBot": "Открыть бота",
   "hero.badge": "Система прямого направления в министерство и Агентство интеллектуальной собственности",
   "hero.title1": "Отправьте идею и доведите её до",
-  "hero.titleGold": "официального патента",
-  "hero.title2": "!",
+  "hero.titleGold": "официального патента!",
+  "hero.title2": "",
   "hero.text":
     "KelajakHub цифрово заверяет и документирует разработки юных изобретателей и стартапов, а затем направляет их в профильное министерство и патентные органы.",
   "hero.cta": "Отправить изобретение",
