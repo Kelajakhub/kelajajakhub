@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { UiSwitch } from "@/lib/i18n";
 
 async function callApi<T>(path: string, payload: unknown): Promise<T> {
   const res = await fetch(path, {
@@ -52,6 +53,8 @@ type Profile = {
     is_verified: boolean;
     has_parent: boolean;
     parent_secret: string | null;
+    age?: number | null;
+    is_minor?: boolean;
   };
   patents: { id: string; title: string; status: string; digital_seal: string }[];
   myProjects: Project[];
@@ -75,13 +78,29 @@ type Chat = {
   messages: { id: string; sender_id: string | null; sender_role: string; body: string; created_at: string }[];
 };
 
-const TABS = [
-  { id: "home", label: "Bosh", icon: "🏠" },
-  { id: "projects", label: "Loyihalar", icon: "🚀" },
-  { id: "chat", label: "Mentor", icon: "💬" },
-  { id: "invest", label: "Investitsiya", icon: "💰" },
-  { id: "parent", label: "Nazorat", icon: "🛡" },
-] as const;
+type TabDef = { id: string; label: string; icon: string };
+
+const ALL_TABS: Record<string, TabDef> = {
+  home: { id: "home", label: "Bosh", icon: "🏠" },
+  projects: { id: "projects", label: "Loyihalar", icon: "🚀" },
+  chat: { id: "chat", label: "Mentor", icon: "💬" },
+  invest: { id: "invest", label: "Investitsiya", icon: "💰" },
+  parent: { id: "parent", label: "Nazorat", icon: "🛡" },
+};
+
+function tabsFor(role: string, isMinor: boolean): TabDef[] {
+  const ids =
+    role === "parent"
+      ? ["home", "parent", "chat"]
+      : role === "mentor"
+        ? ["home", "chat", "projects"]
+        : role === "investor"
+          ? ["home", "invest", "chat"]
+          : isMinor
+            ? ["home", "projects", "chat"]
+            : ["home", "projects", "chat", "invest"];
+  return ids.map((id) => ALL_TABS[id]!);
+}
 
 function MiniApp() {
   const [initData, setInitData] = useState<string | null>(null);
@@ -155,23 +174,33 @@ function MiniApp() {
     );
   }
 
+  const isMinor = Boolean(data.user.is_minor ?? (data.user.age != null && data.user.age < 16));
+  const tabs = tabsFor(data.user.role, isMinor);
+  const activeTab = tabs.some((t) => t.id === tab) ? tab : tabs[0]!.id;
+
   return (
     <main className="ios-shell min-h-screen pb-28 text-foreground">
       <header className="sticky top-0 z-20 border-b border-border/60 bg-background/70 px-5 pb-3 pt-5 backdrop-blur-xl">
-        <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">KelajakHub</p>
-        <h1 className="mt-0.5 text-[26px] font-bold leading-tight tracking-tight">{data.user.full_name}</h1>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">KelajakHub</p>
+            <h1 className="mt-0.5 text-[26px] font-bold leading-tight tracking-tight">{data.user.full_name}</h1>
+          </div>
+          <UiSwitch compact />
+        </div>
         <p className="mt-1 text-[13px] text-muted-foreground">
-          {roleLabel(data.user.role)} · {data.user.phone || "raqam yo'q"} ·{" "}
+          {roleLabel(data.user.role)}
+          {isMinor ? " (16 yoshgacha)" : ""} · {data.user.phone || "raqam yo'q"} ·{" "}
           {data.user.is_verified ? "tasdiqlangan" : "tasdiqlanmagan"}
         </p>
       </header>
 
       <div className="mx-auto max-w-2xl px-4 pt-4">
-        {tab === "home" && <HomeTab data={data} onTab={setTab} />}
-        {tab === "projects" && <ProjectsTab data={data} busy={busy} rpc={rpc} reload={reload} setToast={setToast} />}
-        {tab === "chat" && <ChatTab data={data} initData={initData} rpc={rpc} reload={reload} />}
-        {tab === "invest" && <InvestTab data={data} busy={busy} rpc={rpc} reload={reload} setToast={setToast} />}
-        {tab === "parent" && <ParentTab data={data} rpc={rpc} reload={reload} setToast={setToast} />}
+        {activeTab === "home" && <HomeTab data={data} onTab={setTab} />}
+        {activeTab === "projects" && <ProjectsTab data={data} busy={busy} rpc={rpc} reload={reload} setToast={setToast} />}
+        {activeTab === "chat" && <ChatTab data={data} initData={initData} rpc={rpc} reload={reload} />}
+        {activeTab === "invest" && <InvestTab data={data} busy={busy} rpc={rpc} reload={reload} setToast={setToast} />}
+        {activeTab === "parent" && <ParentTab data={data} rpc={rpc} reload={reload} setToast={setToast} />}
       </div>
 
       {toast && (
@@ -182,12 +211,12 @@ function MiniApp() {
 
       <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-border/60 bg-background/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-2xl items-stretch justify-between px-2 pb-5 pt-2">
-          {TABS.map((t) => (
+          {tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
               className={`flex flex-1 flex-col items-center gap-1 rounded-xl py-1.5 text-[10px] font-medium transition ${
-                tab === t.id ? "text-primary" : "text-muted-foreground"
+                activeTab === t.id ? "text-primary" : "text-muted-foreground"
               }`}
             >
               <span className="text-[18px] leading-none">{t.icon}</span>
