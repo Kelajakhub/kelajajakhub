@@ -52,6 +52,8 @@ type Profile = {
     is_verified: boolean;
     has_parent: boolean;
     parent_secret: string | null;
+    age?: number | null;
+    is_minor?: boolean;
   };
   patents: { id: string; title: string; status: string; digital_seal: string }[];
   myProjects: Project[];
