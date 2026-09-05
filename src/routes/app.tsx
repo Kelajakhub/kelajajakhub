@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { UiSwitch } from "@/lib/i18n";
 
 async function callApi<T>(path: string, payload: unknown): Promise<T> {
   const res = await fetch(path, {
