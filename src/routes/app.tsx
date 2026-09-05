@@ -75,13 +75,29 @@ type Chat = {
   messages: { id: string; sender_id: string | null; sender_role: string; body: string; created_at: string }[];
 };
 
-const TABS = [
-  { id: "home", label: "Bosh", icon: "🏠" },
-  { id: "projects", label: "Loyihalar", icon: "🚀" },
-  { id: "chat", label: "Mentor", icon: "💬" },
-  { id: "invest", label: "Investitsiya", icon: "💰" },
-  { id: "parent", label: "Nazorat", icon: "🛡" },
-] as const;
+type TabDef = { id: string; label: string; icon: string };
+
+const ALL_TABS: Record<string, TabDef> = {
+  home: { id: "home", label: "Bosh", icon: "🏠" },
+  projects: { id: "projects", label: "Loyihalar", icon: "🚀" },
+  chat: { id: "chat", label: "Mentor", icon: "💬" },
+  invest: { id: "invest", label: "Investitsiya", icon: "💰" },
+  parent: { id: "parent", label: "Nazorat", icon: "🛡" },
+};
+
+function tabsFor(role: string, isMinor: boolean): TabDef[] {
+  const ids =
+    role === "parent"
+      ? ["home", "parent", "chat"]
+      : role === "mentor"
+        ? ["home", "chat", "projects"]
+        : role === "investor"
+          ? ["home", "invest", "chat"]
+          : isMinor
+            ? ["home", "projects", "chat"]
+            : ["home", "projects", "chat", "invest"];
+  return ids.map((id) => ALL_TABS[id]!);
+}
 
 function MiniApp() {
   const [initData, setInitData] = useState<string | null>(null);
