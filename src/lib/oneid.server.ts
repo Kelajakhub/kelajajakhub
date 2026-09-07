@@ -23,6 +23,21 @@ export function consentUrl(patentId: string, parentId: string) {
   return `${SITE_ORIGIN}/api/public/oneid/start?patent=${patentId}&parent=${parentId}&t=${t}`;
 }
 
+/** Signed token binding a OneID identity check to a platform user (katta ixtirochi, mentor, investor). */
+export function signIdentity(userId: string) {
+  return createHmac("sha256", secret()).update(`identity:${userId}`).digest("base64url");
+}
+
+export function verifyIdentity(userId: string, token: string) {
+  const expected = Buffer.from(signIdentity(userId));
+  const got = Buffer.from(token);
+  return expected.length === got.length && timingSafeEqual(expected, got);
+}
+
+export function identityUrl(userId: string) {
+  return `${SITE_ORIGIN}/api/public/oneid/verify?user=${userId}&t=${signIdentity(userId)}`;
+}
+
 export function oneIdConfigured() {
   return Boolean(process.env["ONEID_CLIENT_ID"] && process.env["ONEID_CLIENT_SECRET"]);
 }
