@@ -17,6 +17,7 @@ import { Route as ApiPublicMiniappProfileRouteImport } from './routes/api/public
 import { Route as ApiPublicMiniappRpcRouteImport } from './routes/api/public/miniapp/rpc'
 import { Route as ApiPublicOneidCallbackRouteImport } from './routes/api/public/oneid/callback'
 import { Route as ApiPublicOneidStartRouteImport } from './routes/api/public/oneid/start'
+import { Route as ApiPublicOneidVerifyRouteImport } from './routes/api/public/oneid/verify'
 import { Route as ApiPublicTelegramSetupRouteImport } from './routes/api/public/telegram/setup'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
 
@@ -60,6 +61,11 @@ const ApiPublicOneidStartRoute = ApiPublicOneidStartRouteImport.update({
   path: '/api/public/oneid/start',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicOneidVerifyRoute = ApiPublicOneidVerifyRouteImport.update({
+  id: '/api/public/oneid/verify',
+  path: '/api/public/oneid/verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicTelegramSetupRoute = ApiPublicTelegramSetupRouteImport.update({
   id: '/api/public/telegram/setup',
   path: '/api/public/telegram/setup',
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/api/public/miniapp/rpc': typeof ApiPublicMiniappRpcRoute
   '/api/public/oneid/callback': typeof ApiPublicOneidCallbackRoute
   '/api/public/oneid/start': typeof ApiPublicOneidStartRoute
+  '/api/public/oneid/verify': typeof ApiPublicOneidVerifyRoute
   '/api/public/telegram/setup': typeof ApiPublicTelegramSetupRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
@@ -93,6 +100,7 @@ export interface FileRoutesByTo {
   '/api/public/miniapp/rpc': typeof ApiPublicMiniappRpcRoute
   '/api/public/oneid/callback': typeof ApiPublicOneidCallbackRoute
   '/api/public/oneid/start': typeof ApiPublicOneidStartRoute
+  '/api/public/oneid/verify': typeof ApiPublicOneidVerifyRoute
   '/api/public/telegram/setup': typeof ApiPublicTelegramSetupRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
@@ -106,6 +114,7 @@ export interface FileRoutesById {
   '/api/public/miniapp/rpc': typeof ApiPublicMiniappRpcRoute
   '/api/public/oneid/callback': typeof ApiPublicOneidCallbackRoute
   '/api/public/oneid/start': typeof ApiPublicOneidStartRoute
+  '/api/public/oneid/verify': typeof ApiPublicOneidVerifyRoute
   '/api/public/telegram/setup': typeof ApiPublicTelegramSetupRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
@@ -120,6 +129,7 @@ export interface FileRouteTypes {
     | '/api/public/miniapp/rpc'
     | '/api/public/oneid/callback'
     | '/api/public/oneid/start'
+    | '/api/public/oneid/verify'
     | '/api/public/telegram/setup'
     | '/api/public/telegram/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -132,6 +142,7 @@ export interface FileRouteTypes {
     | '/api/public/miniapp/rpc'
     | '/api/public/oneid/callback'
     | '/api/public/oneid/start'
+    | '/api/public/oneid/verify'
     | '/api/public/telegram/setup'
     | '/api/public/telegram/webhook'
   id:
@@ -144,6 +155,7 @@ export interface FileRouteTypes {
     | '/api/public/miniapp/rpc'
     | '/api/public/oneid/callback'
     | '/api/public/oneid/start'
+    | '/api/public/oneid/verify'
     | '/api/public/telegram/setup'
     | '/api/public/telegram/webhook'
   fileRoutesById: FileRoutesById
@@ -157,6 +169,7 @@ export interface RootRouteChildren {
   ApiPublicMiniappRpcRoute: typeof ApiPublicMiniappRpcRoute
   ApiPublicOneidCallbackRoute: typeof ApiPublicOneidCallbackRoute
   ApiPublicOneidStartRoute: typeof ApiPublicOneidStartRoute
+  ApiPublicOneidVerifyRoute: typeof ApiPublicOneidVerifyRoute
   ApiPublicTelegramSetupRoute: typeof ApiPublicTelegramSetupRoute
   ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
 }
@@ -219,6 +232,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicOneidStartRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/oneid/verify': {
+      id: '/api/public/oneid/verify'
+      path: '/api/public/oneid/verify'
+      fullPath: '/api/public/oneid/verify'
+      preLoaderRoute: typeof ApiPublicOneidVerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/telegram/setup': {
       id: '/api/public/telegram/setup'
       path: '/api/public/telegram/setup'
@@ -245,6 +265,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicMiniappRpcRoute: ApiPublicMiniappRpcRoute,
   ApiPublicOneidCallbackRoute: ApiPublicOneidCallbackRoute,
   ApiPublicOneidStartRoute: ApiPublicOneidStartRoute,
+  ApiPublicOneidVerifyRoute: ApiPublicOneidVerifyRoute,
   ApiPublicTelegramSetupRoute: ApiPublicTelegramSetupRoute,
   ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
 }

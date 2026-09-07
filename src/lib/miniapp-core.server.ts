@@ -1,7 +1,8 @@
 import { createHmac } from "node:crypto";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendMessage, stripMarkdown } from "@/lib/bot.server";
-import { consentUrl } from "@/lib/oneid.server";
+import { consentUrl, identityUrl } from "@/lib/oneid.server";
+import { feeBreakdownText, patentFees } from "@/lib/fees.server";
 
 /** Verify Telegram WebApp initData and return the telegram user id. */
 export function verifyInitData(initData: string): number {
@@ -32,13 +33,20 @@ type Me = {
   parent_id: string | null;
   parent_secret: string | null;
   birth_year: number | null;
+  oneid_verified_at: string | null;
+  oneid_name: string | null;
+  mentor_fee: string | null;
+  bio: string | null;
+  expertise: string | null;
 };
 
 async function auth(initData: string): Promise<Me> {
   const telegramId = verifyInitData(initData);
   const { data } = await supabaseAdmin
     .from("bot_users")
-    .select("id, telegram_id, full_name, role, phone, is_verified, parent_id, parent_secret, birth_year")
+    .select(
+      "id, telegram_id, full_name, role, phone, is_verified, parent_id, parent_secret, birth_year, oneid_verified_at, oneid_name, mentor_fee, bio, expertise",
+    )
     .eq("telegram_id", telegramId)
     .maybeSingle();
   if (!data) throw new Error("Avval botda ro'yxatdan o'ting");
@@ -75,10 +83,12 @@ export async function profile(initData: string) {
   const age = me.birth_year ? new Date().getFullYear() - me.birth_year : null;
   const isMinor = role === "inventor" && (age === null || age < 16);
 
-  const isInventor = role === "inventor";
+  const isInventor = role === "inventor" || role === "adult_inventor";
   const isParent = role === "parent";
   const isMentor = role === "mentor";
   const isInvestor = role === "investor";
+
+  const fees = await patentFees();
 
   const [patents, myProjects, mentors, convos, teamAds, children, mentorLinks] = await Promise.all([
     isInventor
@@ -95,7 +105,7 @@ export async function profile(initData: string) {
     isInventor
       ? supabaseAdmin
           .from("bot_users")
-          .select("id, full_name, expertise, bio, username")
+          .select("id, full_name, expertise, bio, username, mentor_fee")
           .eq("role", "mentor")
           .order("created_at", { ascending: false })
           .limit(30)
@@ -209,7 +219,16 @@ export async function profile(initData: string) {
       parent_secret: role === "parent" ? me.parent_secret : null,
       age,
       is_minor: isMinor,
+      is_adult_inventor: role === "adult_inventor",
+      oneid_verified: Boolean(me.oneid_verified_at),
+      oneid_name: me.oneid_name,
+      identity_url: me.oneid_verified_at ? null : identityUrl(me.id),
+      mentor_fee: me.mentor_fee,
+      bio: me.bio,
+      expertise: me.expertise,
     },
+    fees,
+    feeText: feeBreakdownText(fees),
     patents: patents.data ?? [],
     myProjects: myProjects.data ?? [],
     mentors: mentors.data ?? [],
@@ -483,4 +502,94 @@ export async function applyParentConsent(
   );
   await notify(parentId, `🏛 «${patent.title}» arizasi uchun roziligingiz qayd etildi. Rahmat!`);
   return { ok: true, title: patent.title };
+}
+
+
+/** Called from the OneID callback after a platform user identifies themself on sso.egov.uz. */
+export async function applyIdentityVerification(
+  userId: string,
+  identity: { pinfl: string | null; full_name: string | null },
+) {
+  const { data: user } = await supabaseAdmin
+    .from("bot_users")
+    .select("id, full_name, telegram_id")
+    .eq("id", userId)
+    .maybeSingle();
+  if (!user) throw new Error("Foydalanuvchi topilmadi");
+
+  await supabaseAdmin
+    .from("bot_users")
+    .update({
+      oneid_pinfl: identity.pinfl,
+      oneid_name: identity.full_name,
+      oneid_verified_at: new Date().toISOString(),
+      is_verified: true,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", userId);
+
+  await notify(
+    userId,
+    `🏛 Shaxsingiz OneID orqali tasdiqlandi.\n\nEndi ixtirolaringiz qonuniy tartibda patent ekspertizasiga yuboriladi.`,
+  );
+  return { ok: true, name: identity.full_name ?? user.full_name ?? "Foydalanuvchi" };
+}
+
+/** Mentor o'z profili va xizmat haqini saqlaydi. */
+export async function saveMentorProfile(
+  initData: string,
+  input: { bio?: string | undefined; expertise?: string | undefined; mentor_fee?: string | undefined },
+) {
+  const me = await auth(initData);
+  if (me.role !== "mentor") throw new Error("Faqat mentorlar uchun");
+  await supabaseAdmin
+    .from("bot_users")
+    .update({
+      bio: input.bio ?? me.bio,
+      expertise: input.expertise ?? me.expertise,
+      mentor_fee: input.mentor_fee ?? me.mentor_fee,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", me.id);
+  return { ok: true };
+}
+
+/** Katta ixtirochi Mini App orqali patent arizasi topshiradi (OneID tasdiqlangan bo'lishi shart). */
+export async function submitPatent(initData: string, input: { title: string; description: string }) {
+  const me = await auth(initData);
+  if (me.role !== "adult_inventor" && me.role !== "inventor") throw new Error("Faqat ixtirochilar ariza topshiradi");
+  const isAdult = me.role === "adult_inventor";
+  if (isAdult && !me.oneid_verified_at) throw new Error("Avval OneID orqali shaxsingizni tasdiqlang");
+
+  const fees = await patentFees();
+  const payload = `${me.telegram_id}:${input.title}:${input.description}`;
+  let hash = 0;
+  for (let i = 0; i < payload.length; i++) hash = (hash * 31 + payload.charCodeAt(i)) | 0;
+  const digital_seal = `KH-${Date.now().toString(36).toUpperCase()}-${Math.abs(hash).toString(36).toUpperCase()}`;
+  const needsParent = !isAdult && Boolean(me.parent_id);
+
+  const { data: created, error } = await supabaseAdmin
+    .from("patent_applications")
+    .insert({
+      user_id: me.id,
+      telegram_id: me.telegram_id,
+      title: input.title,
+      description: input.description,
+      digital_seal,
+      status: needsParent ? "pending_parent" : "new",
+      state_fee: fees.stateFee,
+      service_fee: fees.serviceFee,
+      total_fee: fees.total,
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+
+  if (needsParent && me.parent_id) {
+    await notify(
+      me.parent_id,
+      `🛡 Ota-ona tasdig'i kerak\n\nFarzandingiz «${input.title}» ixtirosi uchun patent arizasini tayyorladi. Mini App → Nazorat bo'limida OneID orqali tasdiqlang.`,
+    );
+  }
+  return { ok: true, id: created.id, digital_seal, fees, needsParent };
 }

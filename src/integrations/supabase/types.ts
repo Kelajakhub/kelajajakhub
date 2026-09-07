@@ -42,6 +42,10 @@ export type Database = {
           full_name: string | null
           id: string
           is_verified: boolean
+          mentor_fee: string | null
+          oneid_name: string | null
+          oneid_pinfl: string | null
+          oneid_verified_at: string | null
           otp_attempts: number
           otp_code: string | null
           otp_expires_at: string | null
@@ -67,6 +71,10 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_verified?: boolean
+          mentor_fee?: string | null
+          oneid_name?: string | null
+          oneid_pinfl?: string | null
+          oneid_verified_at?: string | null
           otp_attempts?: number
           otp_code?: string | null
           otp_expires_at?: string | null
@@ -92,6 +100,10 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_verified?: boolean
+          mentor_fee?: string | null
+          oneid_name?: string | null
+          oneid_pinfl?: string | null
+          oneid_verified_at?: string | null
           otp_attempts?: number
           otp_code?: string | null
           otp_expires_at?: string | null
@@ -337,10 +349,14 @@ export type Database = {
           parent_consent_by: string | null
           parent_consent_name: string | null
           parent_consent_pinfl: string | null
+          payment_status: string
           sent_at: string | null
+          service_fee: number | null
+          state_fee: number | null
           status: string
           telegram_id: number | null
           title: string
+          total_fee: number | null
           user_id: string | null
         }
         Insert: {
@@ -353,10 +369,14 @@ export type Database = {
           parent_consent_by?: string | null
           parent_consent_name?: string | null
           parent_consent_pinfl?: string | null
+          payment_status?: string
           sent_at?: string | null
+          service_fee?: number | null
+          state_fee?: number | null
           status?: string
           telegram_id?: number | null
           title: string
+          total_fee?: number | null
           user_id?: string | null
         }
         Update: {
@@ -369,10 +389,14 @@ export type Database = {
           parent_consent_by?: string | null
           parent_consent_name?: string | null
           parent_consent_pinfl?: string | null
+          payment_status?: string
           sent_at?: string | null
+          service_fee?: number | null
+          state_fee?: number | null
           status?: string
           telegram_id?: number | null
           title?: string
+          total_fee?: number | null
           user_id?: string | null
         }
         Relationships: [
