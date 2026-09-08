@@ -92,9 +92,11 @@ type TabDef = { id: string; label: string; icon: string };
 const ALL_TABS: Record<string, TabDef> = {
   home: { id: "home", label: "Bosh", icon: "🏠" },
   projects: { id: "projects", label: "Loyihalar", icon: "🚀" },
+  patent: { id: "patent", label: "Patent", icon: "📜" },
   chat: { id: "chat", label: "Mentor", icon: "💬" },
   invest: { id: "invest", label: "Investitsiya", icon: "💰" },
   parent: { id: "parent", label: "Nazorat", icon: "🛡" },
+  me: { id: "me", label: "Profil", icon: "👤" },
 };
 
 function tabsFor(role: string, isMinor: boolean): TabDef[] {
@@ -102,12 +104,12 @@ function tabsFor(role: string, isMinor: boolean): TabDef[] {
     role === "parent"
       ? ["home", "parent", "chat"]
       : role === "mentor"
-        ? ["home", "chat", "projects"]
+        ? ["home", "chat", "projects", "me"]
         : role === "investor"
           ? ["home", "invest", "chat"]
           : isMinor
-            ? ["home", "projects", "chat"]
-            : ["home", "projects", "chat", "invest"];
+            ? ["home", "projects", "patent", "chat"]
+            : ["home", "projects", "patent", "chat", "invest"];
   return ids.map((id) => ALL_TABS[id]!);
 }
 
