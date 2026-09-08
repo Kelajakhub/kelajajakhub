@@ -244,7 +244,8 @@ function MiniApp() {
 
 function roleLabel(role: string) {
   const map: Record<string, string> = {
-    inventor: "Ixtirochi",
+    inventor: "Yosh ixtirochi",
+    adult_inventor: "Katta ixtirochi",
     parent: "Ota-ona",
     mentor: "Mentor",
     investor: "Investor",
