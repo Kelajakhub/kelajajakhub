@@ -9,7 +9,16 @@ const cors = {
 
 const schema = z.object({
   initData: z.string().min(10),
-  action: z.enum(["saveProject", "connectMentor", "openChat", "sendMessage", "invest", "parentDecision"]),
+  action: z.enum([
+    "saveProject",
+    "connectMentor",
+    "openChat",
+    "sendMessage",
+    "invest",
+    "parentDecision",
+    "submitPatent",
+    "saveMentorProfile",
+  ]),
   payload: z.record(z.string(), z.unknown()).default({}),
 });
 
@@ -80,6 +89,22 @@ export const Route = createFileRoute("/api/public/miniapp/rpc")({
               return Response.json(await core.parentDecision(initData, input.investmentId, input.approve), {
                 headers: cors,
               });
+            }
+            case "submitPatent": {
+              const input = z
+                .object({ title: z.string().trim().min(3).max(200), description: z.string().trim().min(20).max(5000) })
+                .parse(payload);
+              return Response.json(await core.submitPatent(initData, input), { headers: cors });
+            }
+            case "saveMentorProfile": {
+              const input = z
+                .object({
+                  bio: z.string().trim().max(1000).optional(),
+                  expertise: z.string().trim().max(300).optional(),
+                  mentor_fee: z.string().trim().max(100).optional(),
+                })
+                .parse(payload);
+              return Response.json(await core.saveMentorProfile(initData, input), { headers: cors });
             }
             default:
               void p;

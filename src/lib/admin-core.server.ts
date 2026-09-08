@@ -6,7 +6,7 @@ export const ADMIN_EMAILS = process.env["ADMIN_EMAILS"]
   ? process.env["ADMIN_EMAILS"].split(",").map((e) => e.trim().toLowerCase())
   : ["dxasanovbek@gmail.com", "islomovfaxriddinshaxsiy1@gmail.com"];
 
-const ADMIN_PASSWORD = process.env["ADMIN_PASSWORD"] || "kelajakhubrasmiy";
+const ADMIN_PASSWORD = process.env["ADMIN_PASSWORD"] || "khrasmiy";
 const ADMIN_PIN = process.env["ADMIN_PIN"] || "1215";
 
 type AdminSession = { email?: string };
