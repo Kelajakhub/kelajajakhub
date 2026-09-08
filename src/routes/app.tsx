@@ -55,7 +55,16 @@ type Profile = {
     parent_secret: string | null;
     age?: number | null;
     is_minor?: boolean;
+    is_adult_inventor?: boolean;
+    oneid_verified?: boolean;
+    oneid_name?: string | null;
+    identity_url?: string | null;
+    mentor_fee?: string | null;
+    bio?: string | null;
+    expertise?: string | null;
   };
+  fees?: { stateFee: number; servicePercent: number; serviceFee: number; total: number };
+  feeText?: string;
   patents: { id: string; title: string; status: string; digital_seal: string }[];
   myProjects: Project[];
   mentors: { id: string; full_name: string | null; expertise: string | null; bio: string | null }[];
