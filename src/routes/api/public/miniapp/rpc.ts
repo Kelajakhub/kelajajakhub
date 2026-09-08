@@ -90,6 +90,22 @@ export const Route = createFileRoute("/api/public/miniapp/rpc")({
                 headers: cors,
               });
             }
+            case "submitPatent": {
+              const input = z
+                .object({ title: z.string().trim().min(3).max(200), description: z.string().trim().min(20).max(5000) })
+                .parse(payload);
+              return Response.json(await core.submitPatent(initData, input), { headers: cors });
+            }
+            case "saveMentorProfile": {
+              const input = z
+                .object({
+                  bio: z.string().trim().max(1000).optional(),
+                  expertise: z.string().trim().max(300).optional(),
+                  mentor_fee: z.string().trim().max(100).optional(),
+                })
+                .parse(payload);
+              return Response.json(await core.saveMentorProfile(initData, input), { headers: cors });
+            }
             default:
               void p;
               return Response.json({ error: "Noma'lum amal" }, { status: 400, headers: cors });
