@@ -9,7 +9,16 @@ const cors = {
 
 const schema = z.object({
   initData: z.string().min(10),
-  action: z.enum(["saveProject", "connectMentor", "openChat", "sendMessage", "invest", "parentDecision"]),
+  action: z.enum([
+    "saveProject",
+    "connectMentor",
+    "openChat",
+    "sendMessage",
+    "invest",
+    "parentDecision",
+    "submitPatent",
+    "saveMentorProfile",
+  ]),
   payload: z.record(z.string(), z.unknown()).default({}),
 });
 
