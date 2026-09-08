@@ -307,16 +307,20 @@ function ChannelSection({ channels, onChange }: { channels: Dash["channels"]; on
 
 function SettingsSection({ settings, onChange }: { settings: Dash["settings"]; onChange: () => void }) {
   const save = useServerFn(adminSaveSetting);
+  const stateFee = Number(settings["patent_state_fee"] ?? 1250000);
+  const percent = Number(settings["patent_service_percent"] ?? 15);
+  const serviceFee = Math.round((stateFee * percent) / 100);
   return (
     <section className="panel p-6">
-      <h2 className="text-lg font-semibold">Vazirlik sozlamalari</h2>
+      <h2 className="text-lg font-semibold">Vazirlik va to'lov sozlamalari</h2>
       <form
         className="mt-4 grid gap-3 sm:grid-cols-3"
         onSubmit={async (e) => {
           e.preventDefault();
           const fd = new FormData(e.currentTarget);
-          await save({ data: { key: "ministry_name", value: String(fd.get("ministry_name") ?? "") } });
-          await save({ data: { key: "ministry_email", value: String(fd.get("ministry_email") ?? "") } });
+          for (const key of ["ministry_name", "ministry_email", "patent_state_fee", "patent_service_percent", "mentor_default_fee"]) {
+            await save({ data: { key, value: String(fd.get(key) ?? "") } });
+          }
           onChange();
           toast.success("Saqlandi");
         }}
@@ -333,8 +337,30 @@ function SettingsSection({ settings, onChange }: { settings: Dash["settings"]; o
           placeholder="Vazirlik email"
           className="rounded-xl border border-input bg-background px-3 py-2 text-sm"
         />
+        <input
+          name="patent_state_fee"
+          defaultValue={settings["patent_state_fee"] ?? "1250000"}
+          placeholder="Davlat yig'imi (so'm)"
+          className="rounded-xl border border-input bg-background px-3 py-2 text-sm"
+        />
+        <input
+          name="patent_service_percent"
+          defaultValue={settings["patent_service_percent"] ?? "15"}
+          placeholder="KelajakHub xizmat haqi (%)"
+          className="rounded-xl border border-input bg-background px-3 py-2 text-sm"
+        />
+        <input
+          name="mentor_default_fee"
+          defaultValue={settings["mentor_default_fee"] ?? "150000"}
+          placeholder="Mentor uchun tavsiya haq (so'm)"
+          className="rounded-xl border border-input bg-background px-3 py-2 text-sm"
+        />
         <button className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Saqlash</button>
       </form>
+      <p className="mt-3 text-xs text-muted-foreground">
+        Hozirgi hisob: davlat yig'imi {stateFee.toLocaleString("ru-RU")} so'm + xizmat haqi {serviceFee.toLocaleString("ru-RU")} so'm ({percent}%) ={" "}
+        {(stateFee + serviceFee).toLocaleString("ru-RU")} so'm.
+      </p>
     </section>
   );
 }
