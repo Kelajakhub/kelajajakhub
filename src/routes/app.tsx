@@ -915,3 +915,179 @@ function ParentTab({
     </div>
   );
 }
+
+/* --------------------------------- Patent --------------------------------- */
+
+function money(v: number) {
+  return `${v.toLocaleString("ru-RU").replace(/\u00a0/g, " ")} so'm`;
+}
+
+function PatentTab({
+  data,
+  busy,
+  rpc,
+  reload,
+  setToast,
+}: {
+  data: Profile;
+  busy: boolean;
+  rpc: <T>(a: string, p: Record<string, unknown>) => Promise<T | null>;
+  reload: () => Promise<void>;
+  setToast: (m: string) => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const fees = data.fees;
+  const needsOneId = Boolean(data.user.is_adult_inventor && !data.user.oneid_verified);
+
+  async function submit() {
+    if (title.trim().length < 3 || description.trim().length < 20) {
+      setToast("Ixtiro nomi va tavsifini to'liqroq yozing (tavsif kamida 20 belgi).");
+      return;
+    }
+    const res = await rpc<{ ok: boolean; digital_seal: string; needsParent: boolean }>("submitPatent", {
+      title: title.trim(),
+      description: description.trim(),
+    });
+    if (res?.ok) {
+      setTitle("");
+      setDescription("");
+      setToast(
+        res.needsParent
+          ? `Muhr: ${res.digital_seal}. Ota-ona roziligi kutilmoqda.`
+          : `Muhr: ${res.digital_seal}. Ariza ekspertizaga qabul qilindi.`,
+      );
+      await reload();
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      {needsOneId && data.user.identity_url && (
+        <Card className="border-primary/50">
+          <p className="text-[14px] font-semibold">Shaxsni tasdiqlash talab qiladi</p>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            Qonuniy patent arizasi uchun OneID orqali shaxsingizni tasdiqlashingiz shart.
+          </p>
+          <a
+            href={data.user.identity_url}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 block rounded-xl bg-primary py-2.5 text-center text-[14px] font-semibold text-primary-foreground"
+          >
+            🏛 OneID orqali tasdiqlash
+          </a>
+        </Card>
+      )}
+
+      {fees && (
+        <Card>
+          <p className="text-[14px] font-semibold">Patent to'lovi</p>
+          <ul className="mt-2 space-y-1 text-[13px] text-muted-foreground">
+            <li>Davlat yig'imi (Intellektual mulk agentligi): {money(fees.stateFee)}</li>
+            <li>
+              KelajakHub xizmat haqi ({fees.servicePercent}%): {money(fees.serviceFee)}
+            </li>
+            <li className="font-semibold text-foreground">Umumiy: {money(fees.total)}</li>
+          </ul>
+          <p className="mt-2 text-[12px] text-muted-foreground">
+            To'lov ariza ekspertizadan o'tgach hisoblanadi. Davlat yig'imi to'liq davlat budjetiga o'tadi.
+          </p>
+        </Card>
+      )}
+
+      <Card className="space-y-3">
+        <h2 className="text-[15px] font-semibold">Yangi patent arizasi</h2>
+        <Field label="Ixtiro nomi" value={title} onChange={setTitle} />
+        <Field label="Ixtiro tavsifi (mohiyati, yangiligi, qo'llanishi)" value={description} onChange={setDescription} textarea />
+        <button
+          onClick={submit}
+          disabled={busy || needsOneId}
+          className="w-full rounded-xl bg-primary py-3 text-[15px] font-semibold text-primary-foreground disabled:opacity-60"
+        >
+          {busy ? "Yuborilmoqda..." : "Raqamli muhr olib, arizani topshirish"}
+        </button>
+      </Card>
+
+      <SectionTitle>Arizalarim</SectionTitle>
+      {data.patents.length ? (
+        data.patents.map((p) => (
+          <Card key={p.id}>
+            <p className="text-[15px] font-semibold">{p.title}</p>
+            <p className="mt-1 text-[12px] text-muted-foreground">
+              {statusLabel(p.status)} · muhr: <code className="text-primary">{p.digital_seal}</code>
+            </p>
+          </Card>
+        ))
+      ) : (
+        <Empty>Hozircha ariza yo'q.</Empty>
+      )}
+    </div>
+  );
+}
+
+/* ----------------------------- Mentor profili ----------------------------- */
+
+function MentorProfileTab({
+  data,
+  busy,
+  rpc,
+  reload,
+  setToast,
+}: {
+  data: Profile;
+  busy: boolean;
+  rpc: <T>(a: string, p: Record<string, unknown>) => Promise<T | null>;
+  reload: () => Promise<void>;
+  setToast: (m: string) => void;
+}) {
+  const [bio, setBio] = useState(data.user.bio ?? "");
+  const [expertise, setExpertise] = useState(data.user.expertise ?? "");
+  const [fee, setFee] = useState(data.user.mentor_fee ?? "");
+
+  return (
+    <div className="space-y-3">
+      <Card className="space-y-3">
+        <h2 className="text-[15px] font-semibold">Mentor profili</h2>
+        <Field label="Yo'nalish (masalan: IT, robototexnika)" value={expertise} onChange={setExpertise} />
+        <Field label="Qisqa ma'lumot" value={bio} onChange={setBio} textarea />
+        <Field label="Xizmat haqi (masalan: 150 000 so'm / oy)" value={fee} onChange={setFee} />
+        <button
+          onClick={async () => {
+            const res = await rpc<{ ok: boolean }>("saveMentorProfile", {
+              bio: bio.trim(),
+              expertise: expertise.trim(),
+              mentor_fee: fee.trim(),
+            });
+            if (res?.ok) {
+              setToast("Profil saqlandi");
+              await reload();
+            }
+          }}
+          disabled={busy}
+          className="w-full rounded-xl bg-primary py-3 text-[15px] font-semibold text-primary-foreground disabled:opacity-60"
+        >
+          {busy ? "Saqlanmoqda..." : "Saqlash"}
+        </button>
+        <p className="text-[12px] text-muted-foreground">
+          Xizmat haqi ixtirochilarga mentor tanlashda ko'rinadi. To'lov mentor va ixtirochi o'rtasida kelishiladi.
+        </p>
+      </Card>
+
+      {data.user.identity_url && (
+        <Card>
+          <p className="text-[14px] font-semibold">Shaxsni tasdiqlash</p>
+          <p className="mt-1 text-[13px] text-muted-foreground">OneID orqali tasdiqlangan mentorlar ro'yxatda yuqorida turadi.</p>
+          <a
+            href={data.user.identity_url}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 block rounded-xl bg-secondary py-2.5 text-center text-[14px] font-semibold"
+          >
+            🏛 OneID orqali tasdiqlash
+          </a>
+        </Card>
+      )}
+    </div>
+  );
+}
