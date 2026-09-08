@@ -212,6 +212,8 @@ function MiniApp() {
         {activeTab === "chat" && <ChatTab data={data} initData={initData} rpc={rpc} reload={reload} />}
         {activeTab === "invest" && <InvestTab data={data} busy={busy} rpc={rpc} reload={reload} setToast={setToast} />}
         {activeTab === "parent" && <ParentTab data={data} rpc={rpc} reload={reload} setToast={setToast} />}
+        {activeTab === "patent" && <PatentTab data={data} busy={busy} rpc={rpc} reload={reload} setToast={setToast} />}
+        {activeTab === "me" && <MentorProfileTab data={data} busy={busy} rpc={rpc} reload={reload} setToast={setToast} />}
       </div>
 
       {toast && (
