@@ -16,6 +16,7 @@ const schema = z.object({
     "sendMessage",
     "invest",
     "parentDecision",
+    "parentPatentDecision",
     "submitPatent",
     "saveMentorProfile",
   ]),
@@ -87,6 +88,12 @@ export const Route = createFileRoute("/api/public/miniapp/rpc")({
             case "parentDecision": {
               const input = z.object({ investmentId: z.string().uuid(), approve: z.boolean() }).parse(payload);
               return Response.json(await core.parentDecision(initData, input.investmentId, input.approve), {
+                headers: cors,
+              });
+            }
+            case "parentPatentDecision": {
+              const input = z.object({ patentId: z.string().uuid(), approve: z.boolean() }).parse(payload);
+              return Response.json(await core.parentPatentDecision(initData, input.patentId, input.approve), {
                 headers: cors,
               });
             }

@@ -847,20 +847,32 @@ function ParentTab({
             <p className="mt-1 text-[12px] text-muted-foreground">
               {statusLabel(p.status)} · <code className="text-primary">{p.digital_seal}</code>
             </p>
-            {p.status === "pending_parent" && p.consent_url && (
+            {p.status === "pending_parent" && (
               <>
                 <p className="mt-2 text-[13px] text-muted-foreground">
-                  Ariza sizning rasmiy roziligingizni kutmoqda. OneID orqali tasdiqlagach, hujjatlar Adliya vazirligi va
-                  Intellektual mulk agentligiga yuboriladi.
+                  Ariza sizning roziligingizni kutmoqda. Rozilik bergach, ariza ko'rib chiqishga yuboriladi.
                 </p>
-                <a
-                  href={p.consent_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-3 block rounded-xl bg-primary py-2.5 text-center text-[14px] font-semibold text-primary-foreground"
-                >
-                  🏛 OneID orqali kiring va arizani tasdiqlang
-                </a>
+                <div className="mt-3 flex gap-2">
+                  {[true, false].map((approve) => (
+                    <button
+                      key={String(approve)}
+                      onClick={async () => {
+                        const res = await rpc<{ ok: boolean }>("parentPatentDecision", { patentId: p.id, approve });
+                        if (res?.ok) {
+                          setToast(approve ? "Rozilik berildi" : "Rad etildi");
+                          await reload();
+                        }
+                      }}
+                      className={
+                        approve
+                          ? "flex-1 rounded-xl bg-primary py-2.5 text-[14px] font-semibold text-primary-foreground"
+                          : "flex-1 rounded-xl border border-border py-2.5 text-[14px] font-semibold"
+                      }
+                    >
+                      {approve ? "✅ Rozilik beraman" : "Rad etish"}
+                    </button>
+                  ))}
+                </div>
               </>
             )}
           </Card>
@@ -937,8 +949,9 @@ function PatentTab({
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const fees = data.fees;
-  const needsOneId = Boolean(data.user.is_adult_inventor && !data.user.oneid_verified);
+  // OneID va to'lovlar hozircha to'xtatilgan.
+  const fees = null as Profile["fees"] | null;
+  const needsOneId = false;
 
   async function submit() {
     if (title.trim().length < 3 || description.trim().length < 20) {
