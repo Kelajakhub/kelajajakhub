@@ -573,10 +573,6 @@ async function handleState(chatId: number, user: BotUser, text: string): Promise
       await aiMentor(chatId, text);
       return true;
     case "patent_title": {
-      if (user.role === "adult_inventor" && !user.oneid_verified_at) {
-        await promptOneId(chatId, user);
-        return true;
-      }
       await upsertUser(chatId, { state: "patent_desc", state_data: { title: text.trim() } });
       await sendMessage(chatId, "📝 Endi ixtironingiz tavsifini batafsil yozing (qanday muammoni yechadi, qanday ishlaydi).");
       return true;
@@ -585,8 +581,6 @@ async function handleState(chatId: number, user: BotUser, text: string): Promise
       const title = String((user.state_data as { title?: string }).title ?? "Nomsiz ixtiro");
       const digital_seal = seal(`${chatId}:${title}:${text}`);
       const needsParent = user.role === "inventor" && Boolean(user.parent_id);
-      const { patentFees, feeBreakdownText } = await import("@/lib/fees.server");
-      const fees = await patentFees();
       const { data: created } = await supabaseAdmin
         .from("patent_applications")
         .insert({
@@ -596,9 +590,6 @@ async function handleState(chatId: number, user: BotUser, text: string): Promise
           description: text,
           digital_seal,
           status: needsParent ? "pending_parent" : "new",
-          state_fee: fees.stateFee,
-          service_fee: fees.serviceFee,
-          total_fee: fees.total,
         })
         .select("id")
         .single();
@@ -606,12 +597,11 @@ async function handleState(chatId: number, user: BotUser, text: string): Promise
       await sendMessage(
         chatId,
         needsParent
-          ? `✅ <b>Arizangiz raqamli muhrlandi.</b>\n\n📜 Ixtiro: <b>${title}</b>\n🔒 Raqamli muhr: <code>${digital_seal}</code>\n\n🛡 Siz 16 yoshga to'lmaganingiz uchun ariza <b>ota-ona tasdig'i</b>ni kutmoqda. Ota-onangizga bildirishnoma yuborildi — u OneID orqali tasdiqlagach, hujjatlar rasmiy organlarga yuboriladi.`
-          : `✅ <b>Arizangiz qabul qilindi va raqamli muhrlandi.</b>\n\n📜 Ixtiro: <b>${title}</b>\n🔒 Raqamli muhr: <code>${digital_seal}</code>\n\nEkspertizadan so'ng hujjatlar Adliya vazirligi va Intellektual mulk agentligiga rasmiy xat bilan yuboriladi.\n\n${feeBreakdownText(fees)}`,
+          ? `✅ <b>Arizangiz raqamli muhrlandi.</b>\n\n📜 Ixtiro: <b>${title}</b>\n🔒 Raqamli muhr: <code>${digital_seal}</code>\n\n🛡 Siz 16 yoshga to'lmaganingiz uchun ariza <b>ota-ona tasdig'i</b>ni kutmoqda. Ota-onangizga bildirishnoma yuborildi.`
+          : `✅ <b>Arizangiz qabul qilindi va raqamli muhrlandi.</b>\n\n📜 Ixtiro: <b>${title}</b>\n🔒 Raqamli muhr: <code>${digital_seal}</code>\n\nEkspertizadan so'ng hujjatlar Adliya vazirligi va Intellektual mulk agentligiga rasmiy xat bilan yuboriladi.`,
         menuFor(fresh.role),
       );
       if (needsParent && created?.id && user.parent_id) {
-        const { consentUrl } = await import("@/lib/oneid.server");
         const { data: parent } = await supabaseAdmin
           .from("bot_users")
           .select("telegram_id")
@@ -620,10 +610,15 @@ async function handleState(chatId: number, user: BotUser, text: string): Promise
         if (parent?.telegram_id) {
           await sendMessage(
             Number(parent.telegram_id),
-            `🛡 <b>Ota-ona tasdig'i kerak</b>\n\nFarzandingiz ${user.full_name ?? ""} «<b>${title}</b>» ixtirosi uchun patent arizasini tayyorladi.\n\nQonuniy vakil sifatida OneID orqali tasdiqlang — shundan keyin ariza rasmiy organlarga yuboriladi.`,
+            `🛡 <b>Ota-ona tasdig'i kerak</b>\n\nFarzandingiz ${user.full_name ?? ""} «<b>${title}</b>» ixtirosi uchun patent arizasini tayyorladi.\n\nQonuniy vakil sifatida roziligingizni bering — shundan keyin ariza ko'rib chiqishga yuboriladi.`,
             {
               reply_markup: {
-                inline_keyboard: [[{ text: "🏛 OneID orqali tasdiqlash", url: consentUrl(created.id, user.parent_id) }]],
+                inline_keyboard: [
+                  [
+                    { text: "✅ Rozilik beraman", callback_data: `pconsent:${created.id}:yes` },
+                    { text: "❌ Rad etish", callback_data: `pconsent:${created.id}:no` },
+                  ],
+                ],
               },
             },
           );
@@ -691,6 +686,19 @@ export async function handleUpdate(update: Record<string, any>) {
       }
       return;
     }
+    if (data.startsWith("pconsent:")) {
+      const [, patentId, decision] = data.split(":");
+      const current = await getUser(chatId);
+      if (!current || current.role !== "parent" || !patentId) return;
+      const { parentPatentDecisionById } = await import("@/lib/miniapp-core.server");
+      try {
+        await parentPatentDecisionById(current.id, patentId, decision === "yes");
+        await sendMessage(chatId, decision === "yes" ? "✅ Roziligingiz qayd etildi." : "❌ Ariza rad etildi.");
+      } catch (e) {
+        await sendMessage(chatId, `⚠️ ${(e as Error).message}`);
+      }
+      return;
+    }
     return;
 
   }
@@ -737,12 +745,6 @@ export async function handleUpdate(update: Record<string, any>) {
     return;
   }
 
-  // Katta ixtirochi OneID tasdig'idan o'tmaguncha menyu ochilmaydi.
-  if (user.role === "adult_inventor" && user.full_name && user.phone && !user.oneid_verified_at) {
-    if (await handleState(chatId, user, text)) return;
-    await promptOneId(chatId, user);
-    return;
-  }
 
   if (user.state === "ready" || user.is_verified) {
     if (await handleMenu(chatId, user, text)) return;
