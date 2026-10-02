@@ -1087,20 +1087,6 @@ function MentorProfileTab({
         </p>
       </Card>
 
-      {false && data.user.identity_url && (
-        <Card>
-          <p className="text-[14px] font-semibold">Shaxsni tasdiqlash</p>
-          <p className="mt-1 text-[13px] text-muted-foreground">OneID orqali tasdiqlangan mentorlar ro'yxatda yuqorida turadi.</p>
-          <a
-            href={data.user.identity_url}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-3 block rounded-xl bg-secondary py-2.5 text-center text-[14px] font-semibold"
-          >
-            🏛 OneID orqali tasdiqlash
-          </a>
-        </Card>
-      )}
     </div>
   );
 }
