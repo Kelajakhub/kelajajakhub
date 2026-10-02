@@ -554,14 +554,11 @@ export async function saveMentorProfile(
   return { ok: true };
 }
 
-/** Katta ixtirochi Mini App orqali patent arizasi topshiradi (OneID tasdiqlangan bo'lishi shart). */
+/** Ixtirochi Mini App orqali patent arizasi topshiradi. OneID va to'lovlar hozircha to'xtatilgan. */
 export async function submitPatent(initData: string, input: { title: string; description: string }) {
   const me = await auth(initData);
   if (me.role !== "adult_inventor" && me.role !== "inventor") throw new Error("Faqat ixtirochilar ariza topshiradi");
   const isAdult = me.role === "adult_inventor";
-  if (isAdult && !me.oneid_verified_at) throw new Error("Avval OneID orqali shaxsingizni tasdiqlang");
-
-  const fees = await patentFees();
   const payload = `${me.telegram_id}:${input.title}:${input.description}`;
   let hash = 0;
   for (let i = 0; i < payload.length; i++) hash = (hash * 31 + payload.charCodeAt(i)) | 0;
@@ -577,9 +574,6 @@ export async function submitPatent(initData: string, input: { title: string; des
       description: input.description,
       digital_seal,
       status: needsParent ? "pending_parent" : "new",
-      state_fee: fees.stateFee,
-      service_fee: fees.serviceFee,
-      total_fee: fees.total,
     })
     .select("id")
     .single();
@@ -588,8 +582,46 @@ export async function submitPatent(initData: string, input: { title: string; des
   if (needsParent && me.parent_id) {
     await notify(
       me.parent_id,
-      `🛡 Ota-ona tasdig'i kerak\n\nFarzandingiz «${input.title}» ixtirosi uchun patent arizasini tayyorladi. Mini App → Nazorat bo'limida OneID orqali tasdiqlang.`,
+      `🛡 Ota-ona tasdig'i kerak\n\nFarzandingiz «${input.title}» ixtirosi uchun patent arizasini tayyorladi. Mini App → Nazorat bo'limida rozilik bering.`,
     );
   }
-  return { ok: true, id: created.id, digital_seal, fees, needsParent };
+  return { ok: true, id: created.id, digital_seal, needsParent };
+}
+
+/** Ota-ona farzand patent arizasiga (OneID'siz) rozilik beradi yoki rad etadi. */
+export async function parentPatentDecisionById(parentId: string, patentId: string, approve: boolean) {
+  const { data: patent } = await supabaseAdmin
+    .from("patent_applications")
+    .select("id, title, status, user_id, digital_seal")
+    .eq("id", patentId)
+    .maybeSingle();
+  if (!patent) throw new Error("Ariza topilmadi");
+  if (patent.status !== "pending_parent") throw new Error("Bu ariza allaqachon ko'rib chiqilgan");
+  const { data: child } = await supabaseAdmin
+    .from("bot_users")
+    .select("id, parent_id")
+    .eq("id", patent.user_id ?? "")
+    .maybeSingle();
+  if (!child || child.parent_id !== parentId) throw new Error("Bu ariza sizning farzandingizga tegishli emas");
+  await supabaseAdmin
+    .from("patent_applications")
+    .update(
+      approve
+        ? { status: "new", parent_consent_at: new Date().toISOString(), parent_consent_by: parentId }
+        : { status: "rejected" },
+    )
+    .eq("id", patentId);
+  await notify(
+    child.id,
+    approve
+      ? `✅ Ota-onangiz «${patent.title}» ixtirosi uchun rozilik berdi.\n🔒 Raqamli muhr: ${patent.digital_seal}\nAriza ko'rib chiqishga yuborildi.`
+      : `❌ Ota-onangiz «${patent.title}» arizasini rad etdi.`,
+  );
+  return { ok: true };
+}
+
+export async function parentPatentDecision(initData: string, patentId: string, approve: boolean) {
+  const me = await auth(initData);
+  if (me.role !== "parent") throw new Error("Faqat ota-onalar uchun");
+  return parentPatentDecisionById(me.id, patentId, approve);
 }
