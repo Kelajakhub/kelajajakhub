@@ -79,7 +79,6 @@ const MENUS: Record<string, string[][]> = {
     ["🧩 Jamoadosh topish", "🎓 Mentorlar tarmog'i"],
     ["📜 Ixtironi patentlash markaziga yuborish"],
     ["💼 Investorlarga topshirish", "🗂 Kelajak portfeli"],
-    ["🏛 OneID orqali shaxsni tasdiqlash", "💳 Patent to'lovi"],
     ["🚀 Mini App"],
   ],
   parent: [
@@ -217,10 +216,6 @@ async function startOnboarding(chatId: number, user: BotUser | null) {
       "📱 Mobil telefon raqamingizni yuboring.\n\nRaqam bog'lanish uchun ishlatiladi, shuning uchun haqiqiy raqamni kiriting.",
       phoneKeyboard,
     );
-    return;
-  }
-  if (user.role === "adult_inventor" && !user.oneid_verified_at) {
-    await promptOneId(chatId, user);
     return;
   }
 
