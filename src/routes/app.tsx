@@ -97,19 +97,23 @@ const ALL_TABS: Record<string, TabDef> = {
   invest: { id: "invest", label: "Investitsiya", icon: "💰" },
   parent: { id: "parent", label: "Nazorat", icon: "🛡" },
   me: { id: "me", label: "Profil", icon: "👤" },
+  lessons: { id: "lessons", label: "Darslar", icon: "🎓" },
+  lab: { id: "lab", label: "Lab", icon: "🧪" },
 };
+
+const PATENT_ENABLED = false;
 
 function tabsFor(role: string, isMinor: boolean): TabDef[] {
   const ids =
     role === "parent"
-      ? ["home", "parent", "chat"]
+      ? ["home", "parent", "lessons", "chat"]
       : role === "mentor"
-        ? ["home", "chat", "projects", "me"]
+        ? ["home", "chat", "projects", "lessons", "me"]
         : role === "investor"
-          ? ["home", "invest", "chat"]
+          ? ["home", "invest", "lessons", "chat"]
           : isMinor
-            ? ["home", "projects", "patent", "chat"]
-            : ["home", "projects", "patent", "chat", "invest"];
+            ? ["home", "projects", "lessons", "lab", "patent", "chat"]
+            : ["home", "projects", "lessons", "lab", "patent", "chat", "invest"];
   return ids.map((id) => ALL_TABS[id]!);
 }
 
@@ -214,6 +218,8 @@ function MiniApp() {
         {activeTab === "parent" && <ParentTab data={data} rpc={rpc} reload={reload} setToast={setToast} />}
         {activeTab === "patent" && <PatentTab data={data} busy={busy} rpc={rpc} reload={reload} setToast={setToast} />}
         {activeTab === "me" && <MentorProfileTab data={data} busy={busy} rpc={rpc} reload={reload} setToast={setToast} />}
+        {activeTab === "lessons" && <LessonsTab rpc={rpc} />}
+        {activeTab === "lab" && <LabTab initData={initData} />}
       </div>
 
       {toast && (
@@ -223,12 +229,12 @@ function MiniApp() {
       )}
 
       <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-border/60 bg-background/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-2xl items-stretch justify-between px-2 pb-5 pt-2">
+        <div className="mx-auto flex max-w-2xl items-stretch justify-between overflow-x-auto px-2 pb-5 pt-2">
           {tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex flex-1 flex-col items-center gap-1 rounded-xl py-1.5 text-[10px] font-medium transition ${
+              className={`flex min-w-[52px] flex-1 flex-col items-center gap-1 rounded-xl py-1.5 text-[10px] font-medium transition ${
                 activeTab === t.id ? "text-primary" : "text-muted-foreground"
               }`}
             >
@@ -954,6 +960,10 @@ function PatentTab({
   const needsOneId = false;
 
   async function submit() {
+    if (!PATENT_ENABLED) {
+      setToast("⏳ Ixtironi patentlash xizmati hozircha ishga tushmagan. Tez orada ochiladi.");
+      return;
+    }
     if (title.trim().length < 3 || description.trim().length < 20) {
       setToast("Ixtiro nomi va tavsifini to'liqroq yozing (tavsif kamida 20 belgi).");
       return;
