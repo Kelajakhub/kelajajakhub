@@ -389,7 +389,10 @@ export async function sendChatMessage(initData: string, conversationId: string, 
   return openChat(initData, { conversationId });
 }
 
-async function aiReply(history: { sender_role: string; body: string }[]) {
+const MENTOR_PROMPT =
+  "Sen KelajakHub AI mentorisan. Yosh ixtirochilarga g'oya, patent, prototip va jamoa masalalarida o'zbek tilida qisqa, amaliy maslahat berasan.";
+
+async function aiReply(history: { sender_role: string; body: string }[], system: string = MENTOR_PROMPT) {
   const key = process.env["LOVABLE_API_KEY"];
   if (!key) return "AI mentor hozircha sozlanmagan.";
   const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -398,15 +401,13 @@ async function aiReply(history: { sender_role: string; body: string }[]) {
     body: JSON.stringify({
       model: "google/gemini-2.5-flash",
       messages: [
-        {
-          role: "system",
-          content:
-            "Sen KelajakHub AI mentorisan. Yosh ixtirochilarga g'oya, patent, prototip va jamoa masalalarida o'zbek tilida qisqa, amaliy maslahat berasan.",
-        },
+        { role: "system", content: `${system} Javobda markdown belgilarini (*, #, _) ishlatma.` },
         ...history.map((m) => ({ role: m.sender_role === "ai" ? "assistant" : "user", content: m.body })),
       ],
     }),
   });
+  if (res.status === 429) return "Juda ko'p so'rov yuborildi, birozdan keyin urinib ko'ring.";
+  if (res.status === 402) return "AI xizmati vaqtincha to'xtatilgan (kredit tugagan).";
   if (!res.ok) return "AI mentor javob bermadi, keyinroq urinib ko'ring.";
   const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
   return stripMarkdown(json.choices?.[0]?.message?.content ?? "");
@@ -414,7 +415,27 @@ async function aiReply(history: { sender_role: string; body: string }[]) {
 
 export async function runLab(initData: string, code: string) {
   verifyInitData(initData);
-  return { output: await aiReply([{ sender_role: "user", body: `Quyidagi kod yoki g'oyani tahlil qil:\n\n${code}` }]) };
+  return {
+    output: await aiReply(
+      [{ sender_role: "user", body: code }],
+      "Sen KelajakHub Laboratoriyasi yordamchisisan. Foydalanuvchi kod, formula, tajriba yoki ixtiro g'oyasini yuboradi. Uni o'zbek tilida tahlil qil: nima ishlaydi, qanday xato yoki xavf bor, qanday sinab ko'rish va yaxshilash mumkin. Kod bo'lsa, natijasini taxmin qilib, xatolarini ko'rsat.",
+    ),
+  };
+}
+
+/** AI darsdan keyingi savol-javob. */
+export async function lessonChat(
+  initData: string,
+  lesson: { title: string; author: string; topic: string },
+  messages: { role: "user" | "ai"; body: string }[],
+) {
+  verifyInitData(initData);
+  const system = `Sen KelajakHub Darslar bo'limi o'qituvchisisan. Foydalanuvchi hozirgina «${lesson.title}» (muallif: ${lesson.author}) video darsini ko'rdi. Mavzu: ${lesson.topic}. Faqat shu dars mavzusi bo'yicha o'zbek tilida savol-javob qil. Agar foydalanuvchi "boshlash" desa, unga bitta tushunishni tekshiruvchi savol ber. U javob bersa, baholab, qisqa izoh va keyingi savolni ber. Javoblar qisqa bo'lsin.`;
+  const reply = await aiReply(
+    messages.slice(-16).map((m) => ({ sender_role: m.role, body: m.body })),
+    system,
+  );
+  return { reply };
 }
 
 export async function invest(initData: string, projectId: string, amount: string, message: string) {
