@@ -19,6 +19,7 @@ const schema = z.object({
     "parentPatentDecision",
     "submitPatent",
     "saveMentorProfile",
+    "lessonChat",
   ]),
   payload: z.record(z.string(), z.unknown()).default({}),
 });
@@ -112,6 +113,22 @@ export const Route = createFileRoute("/api/public/miniapp/rpc")({
                 })
                 .parse(payload);
               return Response.json(await core.saveMentorProfile(initData, input), { headers: cors });
+            }
+            case "lessonChat": {
+              const input = z
+                .object({
+                  lesson: z.object({
+                    title: z.string().max(300),
+                    author: z.string().max(200),
+                    topic: z.string().max(1000),
+                  }),
+                  messages: z
+                    .array(z.object({ role: z.enum(["user", "ai"]), body: z.string().max(4000) }))
+                    .min(1)
+                    .max(40),
+                })
+                .parse(payload);
+              return Response.json(await core.lessonChat(initData, input.lesson, input.messages), { headers: cors });
             }
             default:
               void p;

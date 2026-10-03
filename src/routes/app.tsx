@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { UiSwitch } from "@/lib/i18n";
+import { LESSONS, LESSON_CATEGORIES, type Lesson } from "@/lib/lessons";
 
 async function callApi<T>(path: string, payload: unknown): Promise<T> {
   const res = await fetch(path, {
@@ -97,19 +98,23 @@ const ALL_TABS: Record<string, TabDef> = {
   invest: { id: "invest", label: "Investitsiya", icon: "💰" },
   parent: { id: "parent", label: "Nazorat", icon: "🛡" },
   me: { id: "me", label: "Profil", icon: "👤" },
+  lessons: { id: "lessons", label: "Darslar", icon: "🎓" },
+  lab: { id: "lab", label: "Lab", icon: "🧪" },
 };
+
+const PATENT_ENABLED = false;
 
 function tabsFor(role: string, isMinor: boolean): TabDef[] {
   const ids =
     role === "parent"
-      ? ["home", "parent", "chat"]
+      ? ["home", "parent", "lessons", "chat"]
       : role === "mentor"
-        ? ["home", "chat", "projects", "me"]
+        ? ["home", "chat", "projects", "lessons", "me"]
         : role === "investor"
-          ? ["home", "invest", "chat"]
+          ? ["home", "invest", "lessons", "chat"]
           : isMinor
-            ? ["home", "projects", "patent", "chat"]
-            : ["home", "projects", "patent", "chat", "invest"];
+            ? ["home", "projects", "lessons", "lab", "patent", "chat"]
+            : ["home", "projects", "lessons", "lab", "patent", "chat", "invest"];
   return ids.map((id) => ALL_TABS[id]!);
 }
 
@@ -214,6 +219,8 @@ function MiniApp() {
         {activeTab === "parent" && <ParentTab data={data} rpc={rpc} reload={reload} setToast={setToast} />}
         {activeTab === "patent" && <PatentTab data={data} busy={busy} rpc={rpc} reload={reload} setToast={setToast} />}
         {activeTab === "me" && <MentorProfileTab data={data} busy={busy} rpc={rpc} reload={reload} setToast={setToast} />}
+        {activeTab === "lessons" && <LessonsTab rpc={rpc} />}
+        {activeTab === "lab" && <LabTab initData={initData} />}
       </div>
 
       {toast && (
@@ -223,12 +230,12 @@ function MiniApp() {
       )}
 
       <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-border/60 bg-background/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-2xl items-stretch justify-between px-2 pb-5 pt-2">
+        <div className="mx-auto flex max-w-2xl items-stretch justify-between overflow-x-auto px-2 pb-5 pt-2">
           {tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex flex-1 flex-col items-center gap-1 rounded-xl py-1.5 text-[10px] font-medium transition ${
+              className={`flex min-w-[52px] flex-1 flex-col items-center gap-1 rounded-xl py-1.5 text-[10px] font-medium transition ${
                 activeTab === t.id ? "text-primary" : "text-muted-foreground"
               }`}
             >
@@ -954,6 +961,10 @@ function PatentTab({
   const needsOneId = false;
 
   async function submit() {
+    if (!PATENT_ENABLED) {
+      setToast("⏳ Ixtironi patentlash xizmati hozircha ishga tushmagan. Tez orada ochiladi.");
+      return;
+    }
     if (title.trim().length < 3 || description.trim().length < 20) {
       setToast("Ixtiro nomi va tavsifini to'liqroq yozing (tavsif kamida 20 belgi).");
       return;
@@ -1087,6 +1098,196 @@ function MentorProfileTab({
         </p>
       </Card>
 
+    </div>
+  );
+}
+
+function LessonsTab({ rpc }: { rpc: <T>(a: string, p: Record<string, unknown>) => Promise<T | null> }) {
+  const [cat, setCat] = useState<Lesson["category"]>("debocha");
+  const [open, setOpen] = useState<Lesson | null>(null);
+  const [watched, setWatched] = useState(false);
+  const [msgs, setMsgs] = useState<{ role: "user" | "ai"; body: string }[]>([]);
+  const [input, setInput] = useState("");
+  const [thinking, setThinking] = useState(false);
+
+  async function ask(text: string, base = msgs) {
+    if (!open || !text.trim()) return;
+    const next = [...base, { role: "user" as const, body: text.trim() }];
+    setMsgs(next);
+    setInput("");
+    setThinking(true);
+    const res = await rpc<{ reply: string }>("lessonChat", {
+      lesson: { title: open.title, author: open.author, topic: open.topic },
+      messages: next,
+    });
+    setThinking(false);
+    if (res?.reply) setMsgs([...next, { role: "ai", body: res.reply }]);
+  }
+
+  if (open) {
+    return (
+      <div className="space-y-3">
+        <button onClick={() => { setOpen(null); setMsgs([]); setWatched(false); }} className="text-[14px] text-primary">
+          ‹ Darslar
+        </button>
+        <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
+          <div className="relative aspect-video w-full">
+            <iframe
+              className="absolute inset-0 h-full w-full"
+              src={`https://www.youtube-nocookie.com/embed/${open.youtubeId}?rel=0`}
+              title={open.title}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+          <div className="space-y-2 p-4">
+            <h2 className="text-[16px] font-semibold leading-snug">{open.title}</h2>
+            <div className="rounded-xl bg-muted/60 p-3 text-[13px]">
+              <p><span className="text-muted-foreground">Muallif:</span> <b>{open.author}</b></p>
+              <p><span className="text-muted-foreground">YouTube kanali:</span> {open.channel}</p>
+              <p className="mt-1 text-muted-foreground">{open.about}</p>
+              <a
+                href={`https://www.youtube.com/watch?v=${open.youtubeId}`}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 inline-block text-primary"
+              >
+                YouTube'da ochish ↗
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {!watched ? (
+          <button
+            onClick={() => { setWatched(true); void ask("Boshlash", []); }}
+            className="w-full rounded-xl bg-primary py-3 text-[15px] font-semibold text-primary-foreground"
+          >
+            ✅ Darsni ko'rib bo'ldim — AI bilan savol-javob
+          </button>
+        ) : (
+          <Card className="space-y-2">
+            <p className="text-[14px] font-semibold">🤖 AI savol-javob</p>
+            <div className="max-h-[50vh] space-y-2 overflow-y-auto">
+              {msgs.slice(1).length === 0 && !thinking && <p className="text-[13px] text-muted-foreground">Savol tayyorlanmoqda...</p>}
+              {msgs.map((m, i) =>
+                i === 0 ? null : (
+                  <div
+                    key={i}
+                    className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-[14px] ${
+                      m.role === "user" ? "ml-auto bg-primary text-primary-foreground" : "bg-muted"
+                    }`}
+                  >
+                    {m.body}
+                  </div>
+                ),
+              )}
+              {thinking && <p className="text-[12px] text-muted-foreground">AI yozmoqda...</p>}
+            </div>
+            <div className="flex gap-2">
+              <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && void ask(input)}
+                placeholder="Javobingiz yoki savolingiz..."
+                className="flex-1 rounded-xl border border-border bg-background px-3 py-2.5 text-[14px] outline-none"
+              />
+              <button
+                onClick={() => void ask(input)}
+                disabled={thinking || !input.trim()}
+                className="rounded-xl bg-primary px-4 text-[14px] font-semibold text-primary-foreground disabled:opacity-50"
+              >
+                ➤
+              </button>
+            </div>
+          </Card>
+        )}
+      </div>
+    );
+  }
+
+  const list = LESSONS.filter((l) => l.category === cat);
+  return (
+    <div className="space-y-3">
+      <p className="px-1 text-[13px] text-muted-foreground">O'zbek tilidagi bepul video darslar. Darsdan so'ng AI bilimingizni tekshiradi.</p>
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {LESSON_CATEGORIES.map((c) => (
+          <button
+            key={c.id}
+            onClick={() => setCat(c.id)}
+            className={`shrink-0 rounded-full px-3 py-1.5 text-[13px] font-medium ${
+              cat === c.id ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
+            }`}
+          >
+            {c.icon} {c.label}
+          </button>
+        ))}
+      </div>
+      {list.map((l) => (
+        <button key={l.id} onClick={() => setOpen(l)} className="block w-full text-left">
+          <Card className="flex gap-3 p-3">
+            <img
+              src={`https://i.ytimg.com/vi/${l.youtubeId}/mqdefault.jpg`}
+              alt={l.title}
+              loading="lazy"
+              className="h-16 w-28 shrink-0 rounded-lg object-cover"
+            />
+            <div className="min-w-0">
+              <p className="line-clamp-2 text-[14px] font-semibold leading-snug">{l.title}</p>
+              <p className="mt-1 text-[12px] text-muted-foreground">{l.author} · {l.channel}</p>
+            </div>
+          </Card>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function LabTab({ initData }: { initData: string | null }) {
+  const [code, setCode] = useState("");
+  const [out, setOut] = useState("");
+  const [busy, setBusy] = useState(false);
+  async function run() {
+    if (!initData || !code.trim()) return;
+    setBusy(true);
+    setOut("");
+    try {
+      const res = await callApi<{ output: string }>("/api/public/miniapp/lab", { initData, code });
+      setOut(res.output);
+    } catch (e) {
+      setOut((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="space-y-3">
+      <Card className="space-y-3">
+        <h2 className="text-[15px] font-semibold">🧪 Laboratoriya</h2>
+        <p className="text-[13px] text-muted-foreground">
+          Kod, formula, tajriba yoki ixtiro g'oyangizni yozing — AI uni tahlil qilib, xatolarni va yaxshilash yo'llarini ko'rsatadi.
+        </p>
+        <textarea
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          rows={8}
+          placeholder={'print("Salom, KelajakHub!")'}
+          className="w-full rounded-xl border border-border bg-background px-3 py-2.5 font-mono text-[13px] outline-none"
+        />
+        <button
+          onClick={run}
+          disabled={busy || !code.trim()}
+          className="w-full rounded-xl bg-primary py-3 text-[15px] font-semibold text-primary-foreground disabled:opacity-60"
+        >
+          {busy ? "Tahlil qilinmoqda..." : "▶ Tahlil qilish"}
+        </button>
+      </Card>
+      {out && (
+        <Card>
+          <p className="mb-1 text-[12px] uppercase tracking-wide text-muted-foreground">Natija</p>
+          <p className="whitespace-pre-wrap text-[14px] leading-relaxed">{out}</p>
+        </Card>
+      )}
     </div>
   );
 }

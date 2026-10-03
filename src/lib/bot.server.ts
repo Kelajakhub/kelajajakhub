@@ -357,8 +357,10 @@ async function handleMenu(chatId: number, user: BotUser, text: string): Promise<
       return true;
 
     case "📜 Ixtironi patentlash markaziga yuborish":
-      await upsertUser(chatId, { state: "patent_title" });
-      await sendMessage(chatId, "📜 Ixtironingiz <b>nomini</b> yozing.", { reply_markup: { remove_keyboard: true } });
+      await sendMessage(
+        chatId,
+        "⏳ <b>Ixtironi patentlash xizmati hozircha ishga tushmagan.</b>\n\nTez orada ochiladi. Hozircha loyihangizni Mini App'da joylab, Darslar va Laboratoriya bo'limlaridan foydalaning.",
+      );
       return true;
 
     case "🧩 Jamoadosh topish":
