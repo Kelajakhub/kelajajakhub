@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-const MINI_APP_URL = "https://kelajajakhub.lovable.app/app";
 
 /** One-time bot wiring endpoint. Requires the webhook secret as a bearer token. */
 export const Route = createFileRoute("/api/public/telegram/setup")({
@@ -35,7 +34,7 @@ export const Route = createFileRoute("/api/public/telegram/setup")({
           ],
         });
         const menu = await call("setChatMenuButton", {
-          menu_button: { type: "web_app", text: "KelajakHub", web_app: { url: MINI_APP_URL } },
+          menu_button: { type: "web_app", text: "KelajakHub", web_app: { url: `${base}/app` } },
         });
         const me = await call("getMe", {});
         return Response.json({ setWebhook, commands, menu, me });
