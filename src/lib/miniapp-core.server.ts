@@ -395,22 +395,34 @@ const MENTOR_PROMPT =
 async function aiReply(history: { sender_role: string; body: string }[], system: string = MENTOR_PROMPT) {
   const key = process.env["LOVABLE_API_KEY"];
   if (!key) return "AI mentor hozircha sozlanmagan.";
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { "content-type": "application/json", Authorization: `Bearer ${key}` },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages: [
-        { role: "system", content: `${system} Javobda markdown belgilarini (*, #, _) ishlatma.` },
-        ...history.map((m) => ({ role: m.sender_role === "ai" ? "assistant" : "user", content: m.body })),
-      ],
-    }),
-  });
+  const msgs = history
+    .filter((m) => m.body && m.body.trim())
+    .map((m) => ({ role: m.sender_role === "ai" ? "assistant" : "user", content: m.body }));
+  while (msgs.length && msgs[0]!.role === "assistant") msgs.shift();
+  if (!msgs.length) msgs.push({ role: "user", content: "Salom" });
+  let res: Response;
+  try {
+    res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { "content-type": "application/json", Authorization: `Bearer ${key}`, "X-Lovable-AIG-SDK": "fetch" },
+      body: JSON.stringify({
+        model: "openai/gpt-6-astra",
+        reasoning_effort: "low",
+        messages: [{ role: "system", content: `${system} Javobda markdown belgilarini (*, #, _) ishlatma.` }, ...msgs],
+      }),
+    });
+  } catch (e) {
+    console.error("[ai] network", e);
+    return "AI mentor bilan aloqa uzildi, qayta urinib ko'ring.";
+  }
   if (res.status === 429) return "Juda ko'p so'rov yuborildi, birozdan keyin urinib ko'ring.";
   if (res.status === 402) return "AI xizmati vaqtincha to'xtatilgan (kredit tugagan).";
-  if (!res.ok) return "AI mentor javob bermadi, keyinroq urinib ko'ring.";
+  if (!res.ok) {
+    console.error(`[ai] ${res.status}: ${await res.text()}`);
+    return "AI mentor javob bermadi, keyinroq urinib ko'ring.";
+  }
   const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-  return stripMarkdown(json.choices?.[0]?.message?.content ?? "");
+  return stripMarkdown(json.choices?.[0]?.message?.content ?? "") || "Javob topilmadi, savolni boshqacha yozib ko'ring.";
 }
 
 export async function runLab(initData: string, code: string) {
