@@ -4,7 +4,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const API = () => `https://api.telegram.org/bot${process.env["TELEGRAM_BOT_TOKEN"]}`;
-const MINI_APP_ORIGIN = "https://kelajajakhub.lovable.app";
+const MINI_APP_ORIGIN = () => process.env["PUBLIC_APP_URL"] || "https://kelajajakhub.lovable.app";
 
 export type BotUser = {
   id: string;
@@ -35,7 +35,7 @@ export const ROLES: Record<string, string> = {
 };
 
 export function webAppUrl(path = "/app") {
-  return new URL(path, MINI_APP_ORIGIN).toString();
+  return new URL(path, MINI_APP_ORIGIN()).toString();
 }
 
 async function refreshMiniAppMenu(chatId: number) {
