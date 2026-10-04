@@ -292,9 +292,10 @@ async function aiMentor(chatId: number, question: string) {
   if (!key) return sendMessage(chatId, "AI mentor hozircha ishlamayapti.");
   const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
-    headers: { "content-type": "application/json", Authorization: `Bearer ${key}` },
+    headers: { "content-type": "application/json", Authorization: `Bearer ${key}`, "X-Lovable-AIG-SDK": "fetch" },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "openai/gpt-6-astra",
+      reasoning_effort: "low",
       messages: [
         {
           role: "system",
