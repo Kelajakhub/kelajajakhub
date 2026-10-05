@@ -96,30 +96,49 @@ export const setupTelegramWebhook = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const expected = process.env["TELEGRAM_WEBHOOK_SECRET"] ?? "";
     if (!expected || data.token !== expected) throw new Error("Ruxsat yo'q");
-    const base = process.env["PUBLIC_APP_URL"];
-    const botToken = process.env["TELEGRAM_BOT_TOKEN"];
-    const res = await fetch(`https://api.telegram.org/bot${botToken}/setWebhook`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        url: `${base}/api/public/telegram/webhook`,
-        secret_token: expected,
-        allowed_updates: ["message", "edited_message", "callback_query"],
-        drop_pending_updates: true,
-      }),
-    });
-    const setWebhook = await res.json();
-    const cmdRes = await fetch(`https://api.telegram.org/bot${botToken}/setMyCommands`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        commands: [
-          { command: "start", description: "Botni ishga tushirish" },
-          { command: "help", description: "Yordam" },
-        ],
-      }),
-    });
-    return { setWebhook, commands: await cmdRes.json() };
+    const { setupBots } = await import("./bot.server");
+    return setupBots();
+  });
+
+export const adminBots = createServerFn({ method: "GET" }).handler(async () => {
+  const core = await import("./admin-core.server");
+  return core.bots();
+});
+
+export const adminSetupBots = createServerFn({ method: "POST" }).handler(async () => {
+  const core = await import("./admin-core.server");
+  return core.reconnectBots();
+});
+
+const lessonSchema = z.object({
+  youtube: z.string().trim().min(5).max(200),
+  category: z.enum(["dasturlash", "dizayn", "startup"]),
+  title: z.string().trim().min(2).max(300),
+  author: z.string().trim().min(2).max(200),
+  channel: z.string().trim().min(1).max(200),
+  about: z.string().trim().max(1000).default(""),
+  topic: z.string().trim().max(1000).default(""),
+});
+
+export const adminAddLesson = createServerFn({ method: "POST" })
+  .inputValidator((d) => lessonSchema.parse(d))
+  .handler(async ({ data }) => {
+    const core = await import("./admin-core.server");
+    return core.addLesson(data);
+  });
+
+export const adminDeleteLesson = createServerFn({ method: "POST" })
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    const core = await import("./admin-core.server");
+    return core.deleteLesson(data.id);
+  });
+
+export const adminToggleLesson = createServerFn({ method: "POST" })
+  .inputValidator((d) => z.object({ id: z.string().uuid(), active: z.boolean() }).parse(d))
+  .handler(async ({ data }) => {
+    const core = await import("./admin-core.server");
+    return core.toggleLesson(data.id, data.active);
   });
 
 export const adminDeleteUser = createServerFn({ method: "POST" })

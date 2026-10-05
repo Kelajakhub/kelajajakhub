@@ -4,6 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   adminAddChannel,
+  adminAddLesson,
+  adminBots,
+  adminDeleteLesson,
+  adminSetupBots,
+  adminToggleLesson,
   adminBroadcast,
   adminDashboard,
   adminDeletePatent,
@@ -159,6 +164,8 @@ function AdminPage() {
             <StatsSection stats={data.stats} />
             <PatentSection patents={data.patents} onChange={refresh} />
             <ProjectsSection projects={data.projects} users={data.users} onChange={refresh} />
+            <BotsSection />
+            <LessonsSection lessons={data.lessons} onChange={refresh} />
             <ChannelSection channels={data.channels} onChange={refresh} />
             <SettingsSection settings={data.settings} onChange={refresh} />
             <BroadcastSection />
@@ -662,6 +669,165 @@ function WaitlistSection({ waitlist, onChange }: { waitlist: Dash["waitlist"]; o
           </li>
         ))}
         {waitlist.length === 0 && <li className="text-sm text-muted-foreground">Bo'sh.</li>}
+      </ul>
+    </section>
+  );
+}
+
+type BotInfo = Awaited<ReturnType<typeof adminBots>>[number];
+
+function BotsSection() {
+  const load = useServerFn(adminBots);
+  const setup = useServerFn(adminSetupBots);
+  const [bots, setBots] = useState<BotInfo[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    load().then(setBots).catch(() => setBots([]));
+  }, [load]);
+  return (
+    <section className="panel p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold">Telegram botlar</h2>
+        <button
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            try {
+              setBots(await setup());
+              toast.success("Botlar qayta ulandi");
+            } catch {
+              toast.error("Botlarni ulab bo'lmadi");
+            } finally {
+              setBusy(false);
+            }
+          }}
+          className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+        >
+          {busy ? "Ulanmoqda..." : "Barcha botlarni qayta ulash"}
+        </button>
+      </div>
+      <ul className="mt-4 space-y-2">
+        {bots === null && <li className="text-sm text-muted-foreground">Yuklanmoqda...</li>}
+        {bots?.map((b) => (
+          <li key={b.bot} className="rounded-xl border border-border px-4 py-3 text-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-medium">{b.username ? `@${b.username}` : `Bot ${b.bot}`}</span>
+              <span className={b.ok && b.webhookSet ? "text-primary" : "text-destructive"}>
+                {!b.ok ? "Token ishlamayapti" : b.webhookSet ? "Ishlamoqda" : "Ulanmagan"}
+              </span>
+            </div>
+            {(b.pending > 0 || b.lastError) && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Kutilayotgan xabarlar: {b.pending}
+                {b.lastError ? ` · Oxirgi xato: ${b.lastError}` : ""}
+              </p>
+            )}
+          </li>
+        ))}
+        {bots && bots.length < 2 && (
+          <li className="text-xs text-muted-foreground">Ikkinchi bot tokeni hali qo'shilmagan.</li>
+        )}
+      </ul>
+    </section>
+  );
+}
+
+const LESSON_CATS: Record<string, string> = { dasturlash: "Dasturlash", dizayn: "Grafik dizayn", startup: "Startup" };
+
+function LessonsSection({ lessons, onChange }: { lessons: Dash["lessons"]; onChange: () => void }) {
+  const add = useServerFn(adminAddLesson);
+  const del = useServerFn(adminDeleteLesson);
+  const toggle = useServerFn(adminToggleLesson);
+  const [filter, setFilter] = useState("all");
+  const field = "rounded-xl border border-input bg-background px-3 py-2 text-sm";
+  const shown = lessons.filter((l) => filter === "all" || l.category === filter);
+  return (
+    <section className="panel p-6">
+      <h2 className="text-lg font-semibold">Video darslar ({lessons.length})</h2>
+      <form
+        className="mt-4 grid gap-3 sm:grid-cols-2"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          const form = e.currentTarget;
+          const fd = new FormData(form);
+          const g = (k: string) => String(fd.get(k) ?? "");
+          try {
+            await add({
+              data: {
+                youtube: g("youtube"),
+                category: g("category") as "dasturlash" | "dizayn" | "startup",
+                title: g("title"),
+                author: g("author"),
+                channel: g("channel"),
+                about: g("about"),
+                topic: g("topic"),
+              },
+            });
+            form.reset();
+            onChange();
+            toast.success("Dars qo'shildi");
+          } catch (err) {
+            toast.error((err as Error).message || "Dars qo'shilmadi");
+          }
+        }}
+      >
+        <input name="youtube" required placeholder="YouTube havolasi" className={field} />
+        <select name="category" className={field} defaultValue="startup">
+          {Object.entries(LESSON_CATS).map(([k, v]) => (
+            <option key={k} value={k}>{v}</option>
+          ))}
+        </select>
+        <input name="title" required placeholder="Dars nomi" className={field} />
+        <input name="author" required placeholder="Muallif" className={field} />
+        <input name="channel" required placeholder="YouTube kanali" className={field} />
+        <input name="topic" placeholder="Mavzu (AI savollari uchun)" className={field} />
+        <textarea name="about" placeholder="Muallif haqida" className={`${field} sm:col-span-2`} rows={2} />
+        <button className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground sm:col-span-2">
+          Dars qo'shish
+        </button>
+      </form>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {[["all", "Hammasi"], ...Object.entries(LESSON_CATS)].map(([k, v]) => (
+          <button
+            key={k}
+            onClick={() => setFilter(k!)}
+            className={`rounded-full px-3 py-1 text-xs ${filter === k ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+          >
+            {v}
+          </button>
+        ))}
+      </div>
+      <ul className="mt-3 space-y-2">
+        {shown.map((l) => (
+          <li key={l.id} className="flex items-center gap-3 rounded-xl border border-border px-3 py-2 text-sm">
+            <img src={`https://i.ytimg.com/vi/${l.youtube_id}/default.jpg`} alt="" className="h-10 w-16 rounded object-cover" />
+            <div className="min-w-0 flex-1">
+              <p className={`truncate font-medium ${l.is_active ? "" : "text-muted-foreground line-through"}`}>{l.title}</p>
+              <p className="truncate text-xs text-muted-foreground">
+                {LESSON_CATS[l.category] ?? l.category} · {l.author} · {l.channel}
+              </p>
+            </div>
+            <button
+              onClick={async () => {
+                await toggle({ data: { id: l.id, active: !l.is_active } });
+                onChange();
+              }}
+              className="text-xs text-primary"
+            >
+              {l.is_active ? "Yashirish" : "Ko'rsatish"}
+            </button>
+            <button
+              onClick={async () => {
+                if (!confirm("Darsni o'chirasizmi?")) return;
+                await del({ data: { id: l.id } });
+                onChange();
+              }}
+              className="text-xs text-destructive"
+            >
+              O'chirish
+            </button>
+          </li>
+        ))}
       </ul>
     </section>
   );

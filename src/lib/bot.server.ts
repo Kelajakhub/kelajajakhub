@@ -1,9 +1,23 @@
 /**
  * KelajakHub Telegram bot logic (server-only).
  */
+import { AsyncLocalStorage } from "node:async_hooks";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-const API = () => `https://api.telegram.org/bot${process.env["TELEGRAM_BOT_TOKEN"]}`;
+/** All configured bots share the same logic and database. */
+export function botTokens(): string[] {
+  return [process.env["TELEGRAM_BOT_TOKEN"], process.env["TELEGRAM_BOT_TOKEN_2"]].filter(
+    (t): t is string => Boolean(t && t.trim()),
+  );
+}
+const botStore = new AsyncLocalStorage<string>();
+export function currentBotToken() {
+  return botStore.getStore() ?? botTokens()[0] ?? "";
+}
+/** Run bot logic so every reply goes through the bot that received the update. */
+export function withBot<T>(token: string, fn: () => Promise<T>) {
+  return botStore.run(token, fn);
+}
 const MINI_APP_ORIGIN = () => process.env["PUBLIC_APP_URL"] || "https://kelajajakhub.lovable.app";
 
 export type BotUser = {
@@ -49,13 +63,26 @@ async function refreshMiniAppMenu(chatId: number) {
   });
 }
 
-async function tg(method: string, body: unknown) {
-  const res = await fetch(`${API()}/${method}`, {
+async function tgWith(token: string, method: string, body: unknown) {
+  const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
-  const json = (await res.json()) as { ok: boolean; result?: unknown; description?: string };
+  return (await res.json()) as { ok: boolean; result?: unknown; description?: string; error_code?: number };
+}
+
+async function tg(method: string, body: unknown) {
+  const current = currentBotToken();
+  const json = await tgWith(current, method, body);
+  // Outside a webhook (Mini App / admin) the user may only have started the other bot.
+  if (!json.ok && !botStore.getStore() && (json.error_code === 403 || json.error_code === 400)) {
+    for (const t of botTokens()) {
+      if (t === current) continue;
+      const retry = await tgWith(t, method, body);
+      if (retry.ok) return retry;
+    }
+  }
   if (!json.ok) console.error(`[telegram] ${method} failed: ${json.description}`);
   return json;
 }
@@ -755,4 +782,54 @@ export async function handleUpdate(update: Record<string, any>) {
     return;
   }
   await sendMessage(chatId, "Menyudan tanlang 👇", menuFor(user.role));
+}
+
+/* ------------------------------- multi-bot setup ------------------------------ */
+
+/** Register webhook, commands and Mini App menu for every configured bot. */
+export async function setupBots() {
+  const base = MINI_APP_ORIGIN();
+  const secret = process.env["TELEGRAM_WEBHOOK_SECRET"] ?? "";
+  const results = [];
+  for (const [i, token] of botTokens().entries()) {
+    const setWebhook = await tgWith(token, "setWebhook", {
+      url: `${base}/api/public/telegram/webhook?bot=${i + 1}`,
+      secret_token: secret,
+      allowed_updates: ["message", "edited_message", "callback_query"],
+      drop_pending_updates: false,
+    });
+    const commands = await tgWith(token, "setMyCommands", {
+      commands: [
+        { command: "start", description: "Botni ishga tushirish" },
+        { command: "help", description: "Yordam" },
+      ],
+    });
+    const menu = await tgWith(token, "setChatMenuButton", {
+      menu_button: { type: "web_app", text: "KelajakHub", web_app: { url: `${base}/app` } },
+    });
+    const me = await tgWith(token, "getMe", {});
+    results.push({ bot: i + 1, me, setWebhook, commands, menu });
+  }
+  return { bots: results };
+}
+
+/** Lightweight status of each bot for the admin panel (no tokens returned). */
+export async function botsStatus() {
+  return Promise.all(
+    botTokens().map(async (token, i) => {
+      const me = (await tgWith(token, "getMe", {})) as { ok: boolean; result?: { username?: string; first_name?: string } };
+      const hook = (await tgWith(token, "getWebhookInfo", {})) as {
+        result?: { url?: string; pending_update_count?: number; last_error_message?: string };
+      };
+      return {
+        bot: i + 1,
+        ok: me.ok,
+        username: me.result?.username ?? null,
+        name: me.result?.first_name ?? null,
+        webhookSet: Boolean(hook.result?.url),
+        pending: hook.result?.pending_update_count ?? 0,
+        lastError: hook.result?.last_error_message ?? null,
+      };
+    }),
+  );
 }

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { UiSwitch } from "@/lib/i18n";
-import { LESSONS, LESSON_CATEGORIES, type Lesson } from "@/lib/lessons";
+import { LESSON_CATEGORIES, type Lesson } from "@/lib/lessons";
 
 async function callApi<T>(path: string, payload: unknown): Promise<T> {
   const res = await fetch(path, {
@@ -1103,7 +1103,12 @@ function MentorProfileTab({
 }
 
 function LessonsTab({ rpc }: { rpc: <T>(a: string, p: Record<string, unknown>) => Promise<T | null> }) {
-  const [cat, setCat] = useState<Lesson["category"]>("debocha");
+  const [cat, setCat] = useState<Lesson["category"]>("dasturlash");
+  const [all, setAll] = useState<Lesson[] | null>(null);
+  useEffect(() => {
+    void rpc<{ lessons: Lesson[] }>("lessons", {}).then((r) => setAll(r?.lessons ?? []));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [open, setOpen] = useState<Lesson | null>(null);
   const [watched, setWatched] = useState(false);
   const [msgs, setMsgs] = useState<{ role: "user" | "ai"; body: string }[]>([]);
@@ -1206,7 +1211,7 @@ function LessonsTab({ rpc }: { rpc: <T>(a: string, p: Record<string, unknown>) =
     );
   }
 
-  const list = LESSONS.filter((l) => l.category === cat);
+  const list = (all ?? []).filter((l) => l.category === cat);
   return (
     <div className="space-y-3">
       <p className="px-1 text-[13px] text-muted-foreground">O'zbek tilidagi bepul video darslar. Darsdan so'ng AI bilimingizni tekshiradi.</p>
@@ -1223,6 +1228,8 @@ function LessonsTab({ rpc }: { rpc: <T>(a: string, p: Record<string, unknown>) =
           </button>
         ))}
       </div>
+      {all === null && <p className="px-1 text-[13px] text-muted-foreground">Yuklanmoqda...</p>}
+      {all !== null && list.length === 0 && <p className="px-1 text-[13px] text-muted-foreground">Bu bo'limda hozircha dars yo'q.</p>}
       {list.map((l) => (
         <button key={l.id} onClick={() => setOpen(l)} className="block w-full text-left">
           <Card className="flex gap-3 p-3">

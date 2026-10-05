@@ -55,7 +55,7 @@ async function requireAdmin() {
 
 export async function dashboard() {
   await requireAdmin();
-  const [users, patents, waitlist, channels, settings, posts, projects, investments, messages] = await Promise.all([
+  const [users, patents, waitlist, channels, settings, posts, projects, investments, messages, lessons] = await Promise.all([
     supabaseAdmin.from("bot_users").select("*").order("created_at", { ascending: false }).limit(500),
     supabaseAdmin.from("patent_applications").select("*").order("created_at", { ascending: false }).limit(300),
     supabaseAdmin.from("waitlist").select("*").order("created_at", { ascending: false }).limit(300),
@@ -65,6 +65,7 @@ export async function dashboard() {
     supabaseAdmin.from("projects").select("*").order("created_at", { ascending: false }).limit(300),
     supabaseAdmin.from("investments").select("*").order("created_at", { ascending: false }).limit(300),
     supabaseAdmin.from("messages").select("id", { count: "exact", head: true }),
+    supabaseAdmin.from("lessons").select("*").order("category").order("sort_order"),
   ]);
 
   const u = users.data ?? [];
@@ -82,6 +83,7 @@ export async function dashboard() {
     posts: posts.data ?? [],
     projects: projects.data ?? [],
     investments: inv,
+    lessons: lessons.data ?? [],
     stats: {
       users: u.length,
       verified: u.filter((x) => x.is_verified).length,
@@ -287,4 +289,52 @@ export async function letterPreview(applicationId: string) {
 export async function joinWaitlist(input: { full_name: string; role: string; contact: string }) {
   await supabaseAdmin.from("waitlist").insert(input);
   return { ok: true as const };
+}
+
+/* --------------------------------- lessons --------------------------------- */
+
+function youtubeId(input: string) {
+  const m = input.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([A-Za-z0-9_-]{11})/);
+  if (m) return m[1]!;
+  if (/^[A-Za-z0-9_-]{11}$/.test(input)) return input;
+  throw new Error("YouTube havolasi noto'g'ri");
+}
+
+export async function addLesson(input: {
+  youtube: string; category: string; title: string; author: string; channel: string; about: string; topic: string;
+}) {
+  await requireAdmin();
+  const { youtube, ...rest } = input;
+  const { error } = await supabaseAdmin.from("lessons").insert({ ...rest, youtube_id: youtubeId(youtube), sort_order: Date.now() % 1000000 });
+  if (error) throw new Error(error.message);
+  return { ok: true };
+}
+
+export async function deleteLesson(id: string) {
+  await requireAdmin();
+  const { error } = await supabaseAdmin.from("lessons").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  return { ok: true };
+}
+
+export async function toggleLesson(id: string, active: boolean) {
+  await requireAdmin();
+  const { error } = await supabaseAdmin.from("lessons").update({ is_active: active }).eq("id", id);
+  if (error) throw new Error(error.message);
+  return { ok: true };
+}
+
+/* ---------------------------------- bots ---------------------------------- */
+
+export async function bots() {
+  await requireAdmin();
+  const { botsStatus } = await import("./bot.server");
+  return botsStatus();
+}
+
+export async function reconnectBots() {
+  await requireAdmin();
+  const { setupBots, botsStatus } = await import("./bot.server");
+  await setupBots();
+  return botsStatus();
 }
