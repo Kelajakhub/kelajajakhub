@@ -96,8 +96,9 @@ export const setupTelegramWebhook = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const expected = process.env["TELEGRAM_WEBHOOK_SECRET"] ?? "";
     if (!expected || data.token !== expected) throw new Error("Ruxsat yo'q");
-    const { setupBots } = await import("./bot.server");
-    return setupBots();
+    const { setupBots, botsStatus } = await import("./bot.server");
+    await setupBots();
+    return botsStatus();
   });
 
 export const adminBots = createServerFn({ method: "GET" }).handler(async () => {
