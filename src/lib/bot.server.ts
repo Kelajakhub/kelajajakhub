@@ -1,9 +1,23 @@
 /**
  * KelajakHub Telegram bot logic (server-only).
  */
+import { AsyncLocalStorage } from "node:async_hooks";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-const API = () => `https://api.telegram.org/bot${process.env["TELEGRAM_BOT_TOKEN"]}`;
+/** All configured bots share the same logic and database. */
+export function botTokens(): string[] {
+  return [process.env["TELEGRAM_BOT_TOKEN"], process.env["TELEGRAM_BOT_TOKEN_2"]].filter(
+    (t): t is string => Boolean(t && t.trim()),
+  );
+}
+const botStore = new AsyncLocalStorage<string>();
+export function currentBotToken() {
+  return botStore.getStore() ?? botTokens()[0] ?? "";
+}
+/** Run bot logic so every reply goes through the bot that received the update. */
+export function withBot<T>(token: string, fn: () => Promise<T>) {
+  return botStore.run(token, fn);
+}
 const MINI_APP_ORIGIN = () => process.env["PUBLIC_APP_URL"] || "https://kelajajakhub.lovable.app";
 
 export type BotUser = {
@@ -49,13 +63,26 @@ async function refreshMiniAppMenu(chatId: number) {
   });
 }
 
-async function tg(method: string, body: unknown) {
-  const res = await fetch(`${API()}/${method}`, {
+async function tgWith(token: string, method: string, body: unknown) {
+  const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
-  const json = (await res.json()) as { ok: boolean; result?: unknown; description?: string };
+  return (await res.json()) as { ok: boolean; result?: unknown; description?: string; error_code?: number };
+}
+
+async function tg(method: string, body: unknown) {
+  const current = currentBotToken();
+  const json = await tgWith(current, method, body);
+  // Outside a webhook (Mini App / admin) the user may only have started the other bot.
+  if (!json.ok && !botStore.getStore() && (json.error_code === 403 || json.error_code === 400)) {
+    for (const t of botTokens()) {
+      if (t === current) continue;
+      const retry = await tgWith(t, method, body);
+      if (retry.ok) return retry;
+    }
+  }
   if (!json.ok) console.error(`[telegram] ${method} failed: ${json.description}`);
   return json;
 }
