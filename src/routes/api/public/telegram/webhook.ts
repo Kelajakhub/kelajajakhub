@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+/** One webhook for every bot: ?bot=1 (default) or ?bot=2 selects which token replies. */
 export const Route = createFileRoute("/api/public/telegram/webhook")({
   server: {
     handlers: {
@@ -16,8 +17,11 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
           return Response.json({ ok: true, ignored: true });
         }
         try {
-          const { handleUpdate } = await import("@/lib/bot.server");
-          await handleUpdate(update);
+          const { handleUpdate, withBot, botTokens } = await import("@/lib/bot.server");
+          const idx = Math.max(1, Number(new URL(request.url).searchParams.get("bot") ?? "1")) - 1;
+          const token = botTokens()[idx];
+          if (!token) return Response.json({ ok: true, ignored: true });
+          await withBot(token, () => handleUpdate(update));
         } catch (error) {
           console.error("[telegram webhook]", error);
         }
