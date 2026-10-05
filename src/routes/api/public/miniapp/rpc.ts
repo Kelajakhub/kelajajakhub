@@ -20,6 +20,7 @@ const schema = z.object({
     "submitPatent",
     "saveMentorProfile",
     "lessonChat",
+    "lessons",
   ]),
   payload: z.record(z.string(), z.unknown()).default({}),
 });
@@ -130,6 +131,8 @@ export const Route = createFileRoute("/api/public/miniapp/rpc")({
                 .parse(payload);
               return Response.json(await core.lessonChat(initData, input.lesson, input.messages), { headers: cors });
             }
+            case "lessons":
+              return Response.json(await core.lessons(initData), { headers: cors });
             default:
               void p;
               return Response.json({ error: "Noma'lum amal" }, { status: 400, headers: cors });

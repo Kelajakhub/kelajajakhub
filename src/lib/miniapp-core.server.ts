@@ -660,3 +660,19 @@ export async function parentPatentDecision(initData: string, patentId: string, a
   if (me.role !== "parent") throw new Error("Faqat ota-onalar uchun");
   return parentPatentDecisionById(me.id, patentId, approve);
 }
+
+/** Active video lessons managed from the admin panel. */
+export async function lessons(initData: string) {
+  verifyInitData(initData);
+  const { data } = await supabaseAdmin
+    .from("lessons")
+    .select("id, youtube_id, category, title, author, channel, about, topic")
+    .eq("is_active", true)
+    .order("sort_order");
+  return {
+    lessons: (data ?? []).map((l) => ({
+      id: l.id, youtubeId: l.youtube_id, category: l.category, title: l.title,
+      author: l.author, channel: l.channel, about: l.about, topic: l.topic,
+    })),
+  };
+}
