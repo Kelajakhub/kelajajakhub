@@ -783,3 +783,53 @@ export async function handleUpdate(update: Record<string, any>) {
   }
   await sendMessage(chatId, "Menyudan tanlang 👇", menuFor(user.role));
 }
+
+/* ------------------------------- multi-bot setup ------------------------------ */
+
+/** Register webhook, commands and Mini App menu for every configured bot. */
+export async function setupBots() {
+  const base = MINI_APP_ORIGIN();
+  const secret = process.env["TELEGRAM_WEBHOOK_SECRET"] ?? "";
+  const results = [];
+  for (const [i, token] of botTokens().entries()) {
+    const setWebhook = await tgWith(token, "setWebhook", {
+      url: `${base}/api/public/telegram/webhook?bot=${i + 1}`,
+      secret_token: secret,
+      allowed_updates: ["message", "edited_message", "callback_query"],
+      drop_pending_updates: false,
+    });
+    const commands = await tgWith(token, "setMyCommands", {
+      commands: [
+        { command: "start", description: "Botni ishga tushirish" },
+        { command: "help", description: "Yordam" },
+      ],
+    });
+    const menu = await tgWith(token, "setChatMenuButton", {
+      menu_button: { type: "web_app", text: "KelajakHub", web_app: { url: `${base}/app` } },
+    });
+    const me = await tgWith(token, "getMe", {});
+    results.push({ bot: i + 1, me, setWebhook, commands, menu });
+  }
+  return { bots: results };
+}
+
+/** Lightweight status of each bot for the admin panel (no tokens returned). */
+export async function botsStatus() {
+  return Promise.all(
+    botTokens().map(async (token, i) => {
+      const me = (await tgWith(token, "getMe", {})) as { ok: boolean; result?: { username?: string; first_name?: string } };
+      const hook = (await tgWith(token, "getWebhookInfo", {})) as {
+        result?: { url?: string; pending_update_count?: number; last_error_message?: string };
+      };
+      return {
+        bot: i + 1,
+        ok: me.ok,
+        username: me.result?.username ?? null,
+        name: me.result?.first_name ?? null,
+        webhookSet: Boolean(hook.result?.url),
+        pending: hook.result?.pending_update_count ?? 0,
+        lastError: hook.result?.last_error_message ?? null,
+      };
+    }),
+  );
+}

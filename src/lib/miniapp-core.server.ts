@@ -1,13 +1,13 @@
 import { createHmac } from "node:crypto";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { sendMessage, stripMarkdown } from "@/lib/bot.server";
+import { botTokens, sendMessage, stripMarkdown } from "@/lib/bot.server";
 import { consentUrl, identityUrl } from "@/lib/oneid.server";
 import { feeBreakdownText, patentFees } from "@/lib/fees.server";
 
-/** Verify Telegram WebApp initData and return the telegram user id. */
+/** Verify Telegram WebApp initData (from any configured bot) and return the telegram user id. */
 export function verifyInitData(initData: string): number {
-  const token = process.env["TELEGRAM_BOT_TOKEN"];
-  if (!token) throw new Error("Bot sozlanmagan");
+  const tokens = botTokens();
+  if (!tokens.length) throw new Error("Bot sozlanmagan");
   const params = new URLSearchParams(initData);
   const hash = params.get("hash") ?? "";
   params.delete("hash");
@@ -15,9 +15,11 @@ export function verifyInitData(initData: string): number {
     .map(([k, v]) => `${k}=${v}`)
     .sort()
     .join("\n");
-  const secretKey = createHmac("sha256", "WebAppData").update(token).digest();
-  const computed = createHmac("sha256", secretKey).update(dataCheckString).digest("hex");
-  if (computed !== hash) throw new Error("initData tasdiqlanmadi");
+  const ok = tokens.some((token) => {
+    const secretKey = createHmac("sha256", "WebAppData").update(token).digest();
+    return createHmac("sha256", secretKey).update(dataCheckString).digest("hex") === hash;
+  });
+  if (!ok) throw new Error("initData tasdiqlanmadi");
   const user = JSON.parse(params.get("user") ?? "{}") as { id?: number };
   if (!user.id) throw new Error("Foydalanuvchi topilmadi");
   return Number(user.id);
