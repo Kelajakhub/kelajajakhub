@@ -247,6 +247,48 @@ export type Database = {
           },
         ]
       }
+      lessons: {
+        Row: {
+          about: string
+          author: string
+          category: string
+          channel: string
+          created_at: string
+          id: string
+          is_active: boolean
+          sort_order: number
+          title: string
+          topic: string
+          youtube_id: string
+        }
+        Insert: {
+          about?: string
+          author: string
+          category: string
+          channel: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          sort_order?: number
+          title: string
+          topic?: string
+          youtube_id: string
+        }
+        Update: {
+          about?: string
+          author?: string
+          category?: string
+          channel?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          sort_order?: number
+          title?: string
+          topic?: string
+          youtube_id?: string
+        }
+        Relationships: []
+      }
       mentor_links: {
         Row: {
           created_at: string
