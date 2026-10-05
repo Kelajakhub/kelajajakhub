@@ -1228,6 +1228,8 @@ function LessonsTab({ rpc }: { rpc: <T>(a: string, p: Record<string, unknown>) =
           </button>
         ))}
       </div>
+      {all === null && <p className="px-1 text-[13px] text-muted-foreground">Yuklanmoqda...</p>}
+      {all !== null && list.length === 0 && <p className="px-1 text-[13px] text-muted-foreground">Bu bo'limda hozircha dars yo'q.</p>}
       {list.map((l) => (
         <button key={l.id} onClick={() => setOpen(l)} className="block w-full text-left">
           <Card className="flex gap-3 p-3">
