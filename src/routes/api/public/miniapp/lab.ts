@@ -14,10 +14,10 @@ export const Route = createFileRoute("/api/public/miniapp/lab")({
       POST: async ({ request }) => {
         try {
           const body = z
-            .object({ initData: z.string().min(10), code: z.string().min(1).max(6000) })
+            .object({ initData: z.string().min(10), code: z.string().min(1).max(6000), lang: z.enum(["uz", "en", "ru"]).default("uz") })
             .parse(await request.json());
           const core = await import("@/lib/miniapp-core.server");
-          const data = await core.runLab(body.initData, body.code);
+          const data = await core.runLab(body.initData, body.code, body.lang);
           return Response.json(data, { headers: cors });
         } catch (error) {
           return Response.json({ error: (error as Error).message }, { status: 400, headers: cors });
