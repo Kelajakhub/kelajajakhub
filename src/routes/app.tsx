@@ -297,7 +297,7 @@ function HomeTab({ data, onTab }: { data: Profile; onTab: (t: string) => void })
           {data.patents.map((p) => (
             <Card key={p.id}>
               <h3 className="text-[15px] font-semibold">{p.title}</h3>
-              <p className="mt-1 text-[12px] text-muted-foreground">{tr("Holat:")}{" "}{p.status}{tr("· muhr:")}{" "}<code className="text-primary">{p.digital_seal}</code>
+              <p className="mt-1 text-[12px] text-muted-foreground">{tr("Holat:")}{" "}{p.status}{" "}{tr("· muhr:")}{" "}<code className="text-primary">{p.digital_seal}</code>
               </p>
             </Card>
           ))}
@@ -696,7 +696,7 @@ function InvestTab({
             <Card key={i.id}>
               <p className="text-[15px] font-semibold">{i.amount}</p>
               <p className="mt-1 text-[13px] text-muted-foreground">{i.message}</p>
-              <p className="mt-2 text-[12px] text-muted-foreground">{tr("Investor:")}{" "}{i.investor}{tr("· holat:")}{" "}{statusLabel(i.status)}
+              <p className="mt-2 text-[12px] text-muted-foreground">{tr("Investor:")}{" "}{i.investor}{" "}{tr("· holat:")}{" "}{statusLabel(i.status)}
               </p>
             </Card>
           ))
@@ -883,7 +883,7 @@ function ParentTab({
           <Card key={i.id} className="space-y-2">
             <p className="text-[15px] font-semibold">{i.amount}</p>
             <p className="text-[13px] text-muted-foreground">{i.message}</p>
-            <p className="text-[12px] text-muted-foreground">{tr("Investor:")}{" "}{i.investor}{tr("· holat:")}{" "}{statusLabel(i.status)}
+            <p className="text-[12px] text-muted-foreground">{tr("Investor:")}{" "}{i.investor}{" "}{tr("· holat:")}{" "}{statusLabel(i.status)}
             </p>
             {i.status === "pending_parent" && (
               <div className="flex gap-2 pt-1">
@@ -1020,7 +1020,7 @@ function PatentTab({
           <Card key={p.id}>
             <p className="text-[15px] font-semibold">{p.title}</p>
             <p className="mt-1 text-[12px] text-muted-foreground">
-              {statusLabel(p.status)}{tr("· muhr:")}{" "}<code className="text-primary">{p.digital_seal}</code>
+              {statusLabel(p.status)}{" "}{tr("· muhr:")}{" "}<code className="text-primary">{p.digital_seal}</code>
             </p>
           </Card>
         ))
