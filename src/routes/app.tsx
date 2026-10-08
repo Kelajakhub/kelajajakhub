@@ -1,13 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { UiSwitch } from "@/lib/i18n";
+import { UiSwitch, useUi } from "@/lib/i18n";
+import { tr, currentLang } from "@/lib/tr";
 import { LESSON_CATEGORIES, type Lesson } from "@/lib/lessons";
 
 async function callApi<T>(path: string, payload: unknown): Promise<T> {
   const res = await fetch(path, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ ...(payload as Record<string, unknown>), lang: currentLang() }),
   });
   const json = (await res.json()) as T & { error?: string };
   if (!res.ok) throw new Error(json.error ?? tr("So'rov bajarilmadi"));
@@ -119,6 +120,7 @@ function tabsFor(role: string, isMinor: boolean): TabDef[] {
 }
 
 function MiniApp() {
+  useUi(); // re-render the whole Mini App when the language changes
   const [initData, setInitData] = useState<string | null>(null);
   const [data, setData] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -174,7 +176,7 @@ function MiniApp() {
   if (error) {
     return (
       <main className="ios-shell flex min-h-screen items-center justify-center px-6 text-center">
-        <p className="max-w-sm text-[15px] leading-relaxed text-muted-foreground">{error}</p>
+        <p className="max-w-sm text-[15px] leading-relaxed text-muted-foreground">{tr(error)}</p>
       </main>
     );
   }
@@ -225,7 +227,7 @@ function MiniApp() {
 
       {toast && (
         <div className="fixed bottom-24 left-1/2 z-30 w-[88%] max-w-sm -translate-x-1/2 rounded-2xl bg-foreground/90 px-4 py-3 text-center text-[13px] text-background shadow-lg">
-          {toast}
+          {tr(toast)}
         </div>
       )}
 
@@ -240,7 +242,7 @@ function MiniApp() {
               }`}
             >
               <span className="text-[18px] leading-none">{t.icon}</span>
-              {t.label}
+              {tr(t.label)}
             </button>
           ))}
         </div>
@@ -257,7 +259,7 @@ function roleLabel(role: string) {
     mentor: "Mentor",
     investor: "Investor",
   };
-  return map[role] ?? role;
+  return tr(map[role] ?? role);
 }
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
@@ -780,7 +782,7 @@ function statusLabel(s: string) {
     approved: "tasdiqlangan",
     rejected: "rad etilgan",
   };
-  return map[s] ?? s;
+  return tr(map[s] ?? s);
 }
 
 /* --------------------------------- Nazorat -------------------------------- */
@@ -923,7 +925,7 @@ function ParentTab({
 /* --------------------------------- Patent --------------------------------- */
 
 function money(v: number) {
-  return `${v.toLocaleString("ru-RU").replace(/\u00a0/g, " ")} so'm`;
+  return `${v.toLocaleString("ru-RU").replace(/\u00a0/g, " ")} ${tr("so'm")}`;
 }
 
 function PatentTab({
@@ -963,8 +965,8 @@ function PatentTab({
       setDescription("");
       setToast(
         res.needsParent
-          ? `Muhr: ${res.digital_seal}. Ota-ona roziligi kutilmoqda.`
-          : `Muhr: ${res.digital_seal}. Ariza ekspertizaga qabul qilindi.`,
+          ? `${tr("Muhr")}: ${res.digital_seal}. ${tr("Ota-ona roziligi kutilmoqda.")}`
+          : `${tr("Muhr")}: ${res.digital_seal}. ${tr("Ariza ekspertizaga qabul qilindi.")}`,
       );
       await reload();
     }
@@ -1143,7 +1145,7 @@ function LessonsTab({ rpc }: { rpc: <T>(a: string, p: Record<string, unknown>) =
 
         {!watched ? (
           <button
-            onClick={() => { setWatched(true); void ask("Boshlash", []); }}
+            onClick={() => { setWatched(true); void ask(tr("Boshlash"), []); }}
             className="w-full rounded-xl bg-primary py-3 text-[15px] font-semibold text-primary-foreground"
           >{tr("✅ Darsni ko'rib bo'ldim — AI bilan savol-javob")}
           </button>
@@ -1201,7 +1203,7 @@ function LessonsTab({ rpc }: { rpc: <T>(a: string, p: Record<string, unknown>) =
               cat === c.id ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
             }`}
           >
-            {c.icon} {c.label}
+            {c.icon} {tr(c.label)}
           </button>
         ))}
       </div>
