@@ -10,7 +10,7 @@ async function callApi<T>(path: string, payload: unknown): Promise<T> {
     body: JSON.stringify(payload),
   });
   const json = (await res.json()) as T & { error?: string };
-  if (!res.ok) throw new Error(json.error ?? "So'rov bajarilmadi");
+  if (!res.ok) throw new Error(json.error ?? tr("So'rov bajarilmadi"));
   return json;
 }
 
@@ -133,7 +133,7 @@ function MiniApp() {
     tg?.WebApp?.expand?.();
     const raw = tg?.WebApp?.initData ?? "";
     if (!raw) {
-      setError("Bu sahifa Telegram bot ichida ochilishi kerak. @kelajakhubbot ga kiring va «KelajakHub» tugmasini bosing.");
+      setError(tr("Bu sahifa Telegram bot ichida ochilishi kerak. @kelajakhubbot ga kiring va «KelajakHub» tugmasini bosing."));
       return;
     }
     setInitData(raw);
@@ -184,7 +184,7 @@ function MiniApp() {
       <main className="ios-shell flex min-h-screen items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" />
-          <p className="text-sm text-muted-foreground">Yuklanmoqda...</p>
+          <p className="text-sm text-muted-foreground">{tr("Yuklanmoqda...")}</p>
         </div>
       </main>
     );
@@ -199,14 +199,14 @@ function MiniApp() {
       <header className="sticky top-0 z-20 border-b border-border/60 bg-background/70 px-5 pb-3 pt-5 backdrop-blur-xl">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">KelajakHub</p>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{tr("KelajakHub")}</p>
             <h1 className="mt-0.5 text-[26px] font-bold leading-tight tracking-tight">{data.user.full_name}</h1>
           </div>
           <UiSwitch compact />
         </div>
         <p className="mt-1 text-[13px] text-muted-foreground">
           {roleLabel(data.user.role)}
-          {isMinor ? " (16 yoshgacha)" : ""} · {data.user.phone || "raqam yo'q"} ·{" "}
+          {isMinor ? tr(" (16 yoshgacha)") : ""} · {data.user.phone || tr("raqam yo'q")} ·{" "}
           {data.user.is_verified ? "tasdiqlangan" : "tasdiqlanmagan"}
         </p>
       </header>
@@ -276,9 +276,9 @@ function Empty({ children }: { children: React.ReactNode }) {
 
 function HomeTab({ data, onTab }: { data: Profile; onTab: (t: string) => void }) {
   const stats = [
-    { label: "Loyihalar", value: data.myProjects.length, tab: "projects" },
-    { label: "Patentlar", value: data.patents.length, tab: "home" },
-    { label: "Suhbatlar", value: data.conversations.length, tab: "chat" },
+    { label: tr("Loyihalar"), value: data.myProjects.length, tab: "projects" },
+    { label: tr("Patentlar"), value: data.patents.length, tab: "home" },
+    { label: tr("Suhbatlar"), value: data.conversations.length, tab: "chat" },
   ];
   return (
     <div className="space-y-3">
@@ -291,62 +291,59 @@ function HomeTab({ data, onTab }: { data: Profile; onTab: (t: string) => void })
         ))}
       </div>
 
-      <SectionTitle>Patent portfeli</SectionTitle>
+      <SectionTitle>{tr("Patent portfeli")}</SectionTitle>
       {data.patents.length ? (
         <div className="space-y-2">
           {data.patents.map((p) => (
             <Card key={p.id}>
               <h3 className="text-[15px] font-semibold">{p.title}</h3>
-              <p className="mt-1 text-[12px] text-muted-foreground">
-                Holat: {p.status} · muhr: <code className="text-primary">{p.digital_seal}</code>
+              <p className="mt-1 text-[12px] text-muted-foreground">{tr("Holat:")}{" "}{p.status}{tr("· muhr:")}{" "}<code className="text-primary">{p.digital_seal}</code>
               </p>
             </Card>
           ))}
         </div>
       ) : (
-        <Empty>Hozircha ixtiro yo'q. Botdagi «Ixtironi patentlash markaziga yuborish» tugmasidan foydalaning.</Empty>
+        <Empty>{tr("Hozircha ixtiro yo'q. Botdagi «Ixtironi patentlash markaziga yuborish» tugmasidan foydalaning.")}</Empty>
       )}
 
-      <SectionTitle>Jamoa izlayotgan loyihalar</SectionTitle>
+      <SectionTitle>{tr("Jamoa izlayotgan loyihalar")}</SectionTitle>
       {data.teamAds.length ? (
         <div className="space-y-2">
           {data.teamAds.map((t) => (
             <Card key={t.id}>
               <h3 className="text-[15px] font-semibold">{t.title}</h3>
-              <p className="mt-1 text-[13px] text-muted-foreground">{t.team_note ?? "Jamoaga a'zo kerak."}</p>
-              <p className="mt-2 text-[12px] text-muted-foreground">Muallif: {t.owner}</p>
+              <p className="mt-1 text-[13px] text-muted-foreground">{t.team_note ?? tr("Jamoaga a'zo kerak.")}</p>
+              <p className="mt-2 text-[12px] text-muted-foreground">{tr("Muallif:")}{" "}{t.owner}</p>
               {t.telegram_group_url && (
-                <a href={t.telegram_group_url} className="mt-2 inline-block text-[13px] font-medium text-primary">
-                  Guruhga qo'shilish →
+                <a href={t.telegram_group_url} className="mt-2 inline-block text-[13px] font-medium text-primary">{tr("Guruhga qo'shilish →")}
                 </a>
               )}
             </Card>
           ))}
         </div>
       ) : (
-        <Empty>Hozircha jamoa e'lonlari yo'q.</Empty>
+        <Empty>{tr("Hozircha jamoa e'lonlari yo'q.")}</Empty>
       )}
 
       {data.user.role === "mentor" && (
         <>
-          <SectionTitle>Mentorlik loyihalari</SectionTitle>
+          <SectionTitle>{tr("Mentorlik loyihalari")}</SectionTitle>
           {data.mentorProjects.length ? (
             <div className="space-y-2">
               {data.mentorProjects.map((p) => (
                 <Card key={p.id}>
                   <h3 className="text-[15px] font-semibold">{p.title}</h3>
                   <p className="mt-1 text-[13px] text-muted-foreground">{p.description}</p>
-                  <p className="mt-2 text-[12px] text-muted-foreground">Ixtirochi: {p.owner}</p>
+                  <p className="mt-2 text-[12px] text-muted-foreground">{tr("Ixtirochi:")}{" "}{p.owner}</p>
                   {p.telegram_group_url && (
-                    <a href={p.telegram_group_url} className="mt-2 inline-block text-[13px] font-medium text-primary">
-                      Loyiha guruhiga kirish →
+                    <a href={p.telegram_group_url} className="mt-2 inline-block text-[13px] font-medium text-primary">{tr("Loyiha guruhiga kirish →")}
                     </a>
                   )}
                 </Card>
               ))}
             </div>
           ) : (
-            <Empty>Hozircha sizga ulangan loyiha yo'q.</Empty>
+            <Empty>{tr("Hozircha sizga ulangan loyiha yo'q.")}</Empty>
           )}
         </>
       )}
@@ -396,7 +393,7 @@ function ProjectsTab({
 
   async function save() {
     if (form.title.trim().length < 2 || form.description.trim().length < 5) {
-      setToast("Loyiha nomi va tavsifini to'liq kiriting.");
+      setToast(tr("Loyiha nomi va tavsifini to'liq kiriting."));
       return;
     }
     const res = await rpc<{ ok: boolean }>("saveProject", {
@@ -420,7 +417,7 @@ function ProjectsTab({
         team_note: "",
         telegram_group_url: "",
       });
-      setToast("Loyiha saqlandi");
+      setToast(tr("Loyiha saqlandi"));
       await reload();
     }
   }
@@ -428,13 +425,12 @@ function ProjectsTab({
   return (
     <div className="space-y-3">
       <Card className="space-y-3">
-        <h2 className="text-[15px] font-semibold">{form.id ? "Loyihani tahrirlash" : "Yangi loyiha"}</h2>
-        <Field label="Nomi" value={form.title} onChange={(v) => setForm({ ...form, title: v })} />
-        <Field label="Tavsif" value={form.description} onChange={(v) => setForm({ ...form, description: v })} textarea />
-        <Field label="Logo havolasi" value={form.logo_url} onChange={(v) => setForm({ ...form, logo_url: v })} />
-        <Field label="Investitsiya maqsadi" value={form.funding_goal} onChange={(v) => setForm({ ...form, funding_goal: v })} />
-        <label className="flex items-center justify-between rounded-xl border border-border/70 px-3 py-2.5 text-[14px]">
-          Jamoa izlayapman
+        <h2 className="text-[15px] font-semibold">{form.id ? tr("Loyihani tahrirlash") : tr("Yangi loyiha")}</h2>
+        <Field label={tr("Nomi")} value={form.title} onChange={(v) => setForm({ ...form, title: v })} />
+        <Field label={tr("Tavsif")} value={form.description} onChange={(v) => setForm({ ...form, description: v })} textarea />
+        <Field label={tr("Logo havolasi")} value={form.logo_url} onChange={(v) => setForm({ ...form, logo_url: v })} />
+        <Field label={tr("Investitsiya maqsadi")} value={form.funding_goal} onChange={(v) => setForm({ ...form, funding_goal: v })} />
+        <label className="flex items-center justify-between rounded-xl border border-border/70 px-3 py-2.5 text-[14px]">{tr("Jamoa izlayapman")}
           <input
             type="checkbox"
             checked={form.looking_for_team}
@@ -443,10 +439,10 @@ function ProjectsTab({
           />
         </label>
         {form.looking_for_team && (
-          <Field label="Kim kerak?" value={form.team_note} onChange={(v) => setForm({ ...form, team_note: v })} textarea />
+          <Field label={tr("Kim kerak?")} value={form.team_note} onChange={(v) => setForm({ ...form, team_note: v })} textarea />
         )}
         <Field
-          label="Telegram guruh havolasi"
+          label={tr("Telegram guruh havolasi")}
           value={form.telegram_group_url}
           onChange={(v) => setForm({ ...form, telegram_group_url: v })}
         />
@@ -455,26 +451,24 @@ function ProjectsTab({
           disabled={busy}
           className="w-full rounded-xl bg-primary py-3 text-[15px] font-semibold text-primary-foreground disabled:opacity-60"
         >
-          {busy ? "Saqlanmoqda..." : "Saqlash"}
+          {busy ? tr("Saqlanmoqda...") : tr("Saqlash")}
         </button>
       </Card>
 
-      <SectionTitle>Mening loyihalarim</SectionTitle>
+      <SectionTitle>{tr("Mening loyihalarim")}</SectionTitle>
       {data.myProjects.length ? (
         data.myProjects.map((p) => (
           <Card key={p.id} className="space-y-2">
             <h3 className="text-[15px] font-semibold">{p.title}</h3>
             <p className="text-[13px] text-muted-foreground">{p.description}</p>
-            {p.funding_goal && <p className="text-[12px] text-muted-foreground">Maqsad: {p.funding_goal}</p>}
+            {p.funding_goal && <p className="text-[12px] text-muted-foreground">{tr("Maqsad:")}{" "}{p.funding_goal}</p>}
             <div className="flex gap-2 pt-1">
-              <button onClick={() => edit(p)} className="rounded-xl border border-border px-3 py-2 text-[13px]">
-                Tahrirlash
+              <button onClick={() => edit(p)} className="rounded-xl border border-border px-3 py-2 text-[13px]">{tr("Tahrirlash")}
               </button>
               <button
                 onClick={() => setMentorFor(mentorFor === p.id ? null : p.id)}
                 className="rounded-xl bg-secondary px-3 py-2 text-[13px] font-medium"
-              >
-                Mentor ulash
+              >{tr("Mentor ulash")}
               </button>
             </div>
             {mentorFor === p.id && (
@@ -486,26 +480,26 @@ function ProjectsTab({
                       onClick={async () => {
                         const res = await rpc<{ ok: boolean }>("connectMentor", { projectId: p.id, mentorId: m.id });
                         if (res?.ok) {
-                          setToast("Mentorga so'rov yuborildi");
+                          setToast(tr("Mentorga so'rov yuborildi"));
                           setMentorFor(null);
                           await reload();
                         }
                       }}
                       className="w-full rounded-xl border border-border px-3 py-2 text-left text-[13px]"
                     >
-                      <span className="font-medium">{m.full_name ?? "Mentor"}</span>
+                      <span className="font-medium">{m.full_name ?? tr("Mentor")}</span>
                       {m.expertise && <span className="text-muted-foreground"> · {m.expertise}</span>}
                     </button>
                   ))
                 ) : (
-                  <p className="text-[13px] text-muted-foreground">Hozircha mentor ro'yxatdan o'tmagan.</p>
+                  <p className="text-[13px] text-muted-foreground">{tr("Hozircha mentor ro'yxatdan o'tmagan.")}</p>
                 )}
               </div>
             )}
           </Card>
         ))
       ) : (
-        <Empty>Hozircha loyiha yo'q — yuqoridagi formadan qo'shing.</Empty>
+        <Empty>{tr("Hozircha loyiha yo'q — yuqoridagi formadan qo'shing.")}</Empty>
       )}
     </div>
   );
@@ -585,8 +579,7 @@ function ChatTab({
   if (chat) {
     return (
       <div className="space-y-3">
-        <button onClick={() => setChat(null)} className="text-[14px] font-medium text-primary">
-          ← Suhbatlar
+        <button onClick={() => setChat(null)} className="text-[14px] font-medium text-primary">{tr("← Suhbatlar")}
         </button>
         <Card className="max-h-[52vh] space-y-2 overflow-y-auto">
           {chat.messages.length ? (
@@ -605,7 +598,7 @@ function ChatTab({
               );
             })
           ) : (
-            <p className="text-[13px] text-muted-foreground">Suhbatni boshlang.</p>
+            <p className="text-[13px] text-muted-foreground">{tr("Suhbatni boshlang.")}</p>
           )}
           <div ref={endRef} />
         </Card>
@@ -614,7 +607,7 @@ function ChatTab({
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder="Xabar yozing..."
+            placeholder={tr("Xabar yozing...")}
             className="flex-1 rounded-full border border-input bg-background px-4 py-3 text-[14px] outline-none focus:border-primary"
           />
           <button
@@ -622,10 +615,10 @@ function ChatTab({
             disabled={sending}
             className="rounded-full bg-primary px-5 text-[14px] font-semibold text-primary-foreground disabled:opacity-60"
           >
-            {sending ? "..." : "Yuborish"}
+            {sending ? "..." : tr("Yuborish")}
           </button>
         </div>
-        <p className="px-1 text-[11px] text-muted-foreground">Chat tarixi 30 kundan keyin avtomatik o'chiriladi. Patent tarixi hech qachon o'chmaydi.</p>
+        <p className="px-1 text-[11px] text-muted-foreground">{tr("Chat tarixi 30 kundan keyin avtomatik o'chiriladi. Patent tarixi hech qachon o'chmaydi.")}</p>
       </div>
     );
   }
@@ -636,11 +629,11 @@ function ChatTab({
         onClick={() => open({ ai: true })}
         className="w-full rounded-2xl bg-primary p-4 text-left text-primary-foreground"
       >
-        <p className="text-[15px] font-semibold">🤖 AI Mentor</p>
-        <p className="mt-0.5 text-[12px] opacity-80">G'oya, patent va prototip bo'yicha darhol maslahat</p>
+        <p className="text-[15px] font-semibold">{tr("🤖 AI Mentor")}</p>
+        <p className="mt-0.5 text-[12px] opacity-80">{tr("G'oya, patent va prototip bo'yicha darhol maslahat")}</p>
       </button>
 
-      <SectionTitle>Suhbatlar</SectionTitle>
+      <SectionTitle>{tr("Suhbatlar")}</SectionTitle>
       {data.conversations.length ? (
         data.conversations.map((c) => (
           <button
@@ -653,10 +646,10 @@ function ChatTab({
           </button>
         ))
       ) : (
-        <Empty>Hozircha suhbat yo'q.</Empty>
+        <Empty>{tr("Hozircha suhbat yo'q.")}</Empty>
       )}
 
-      <SectionTitle>Mentorlar</SectionTitle>
+      <SectionTitle>{tr("Mentorlar")}</SectionTitle>
       {data.mentors.length ? (
         data.mentors.map((m) => (
           <button
@@ -664,12 +657,12 @@ function ChatTab({
             onClick={() => open({ mentorId: m.id })}
             className="block w-full rounded-2xl border border-border/70 bg-card/80 p-4 text-left"
           >
-            <p className="text-[15px] font-semibold">{m.full_name ?? "Mentor"}</p>
-            <p className="mt-0.5 text-[12px] text-muted-foreground">{m.expertise ?? m.bio ?? "Mentor"}</p>
+            <p className="text-[15px] font-semibold">{m.full_name ?? tr("Mentor")}</p>
+            <p className="mt-0.5 text-[12px] text-muted-foreground">{m.expertise ?? m.bio ?? tr("Mentor")}</p>
           </button>
         ))
       ) : (
-        <Empty>Hozircha mentor yo'q.</Empty>
+        <Empty>{tr("Hozircha mentor yo'q.")}</Empty>
       )}
     </div>
   );
@@ -697,19 +690,18 @@ function InvestTab({
   if (data.user.role !== "investor") {
     return (
       <div className="space-y-3">
-        <SectionTitle>Loyihamga kelgan takliflar</SectionTitle>
+        <SectionTitle>{tr("Loyihamga kelgan takliflar")}</SectionTitle>
         {data.incomingInvestments.length ? (
           data.incomingInvestments.map((i) => (
             <Card key={i.id}>
               <p className="text-[15px] font-semibold">{i.amount}</p>
               <p className="mt-1 text-[13px] text-muted-foreground">{i.message}</p>
-              <p className="mt-2 text-[12px] text-muted-foreground">
-                Investor: {i.investor} · holat: {statusLabel(i.status)}
+              <p className="mt-2 text-[12px] text-muted-foreground">{tr("Investor:")}{" "}{i.investor}{tr("· holat:")}{" "}{statusLabel(i.status)}
               </p>
             </Card>
           ))
         ) : (
-          <Empty>Hozircha investitsiya taklifi yo'q. Loyihangizni to'liq to'ldirsangiz, investorlar ko'radi.</Empty>
+          <Empty>{tr("Hozircha investitsiya taklifi yo'q. Loyihangizni to'liq to'ldirsangiz, investorlar ko'radi.")}</Empty>
         )}
       </div>
     );
@@ -717,7 +709,7 @@ function InvestTab({
 
   return (
     <div className="space-y-3">
-      <SectionTitle>Loyihalar</SectionTitle>
+      <SectionTitle>{tr("Loyihalar")}</SectionTitle>
       {data.investorFeed.length ? (
         data.investorFeed.map((p) => (
           <Card key={p.id} className="space-y-2">
@@ -729,28 +721,27 @@ function InvestTab({
               </div>
             </div>
             <p className="text-[13px] text-muted-foreground">{p.description}</p>
-            {p.funding_goal && <p className="text-[12px] text-muted-foreground">Maqsad: {p.funding_goal}</p>}
+            {p.funding_goal && <p className="text-[12px] text-muted-foreground">{tr("Maqsad:")}{" "}{p.funding_goal}</p>}
             <button
               onClick={() => setOpen(open === p.id ? null : p.id)}
               className="rounded-xl bg-primary px-4 py-2 text-[13px] font-semibold text-primary-foreground"
-            >
-              Investitsiya taklif qilish
+            >{tr("Investitsiya taklif qilish")}
             </button>
             {open === p.id && (
               <div className="space-y-2 pt-1">
-                <Field label="Summa" value={amount} onChange={setAmount} />
-                <Field label="Xabar" value={message} onChange={setMessage} textarea />
+                <Field label={tr("Summa")} value={amount} onChange={setAmount} />
+                <Field label={tr("Xabar")} value={message} onChange={setMessage} textarea />
                 <button
                   disabled={busy}
                   onClick={async () => {
-                    if (!amount.trim()) return setToast("Summani kiriting.");
+                    if (!amount.trim()) return setToast(tr("Summani kiriting."));
                     const res = await rpc<{ ok: boolean; needsParent: boolean }>("invest", {
                       projectId: p.id,
                       amount: amount.trim(),
                       message: message.trim(),
                     });
                     if (res?.ok) {
-                      setToast(res.needsParent ? "Taklif yuborildi — ota-ona roziligi kutilmoqda" : "Taklif yuborildi");
+                      setToast(res.needsParent ? tr("Taklif yuborildi — ota-ona roziligi kutilmoqda") : tr("Taklif yuborildi"));
                       setOpen(null);
                       setAmount("");
                       setMessage("");
@@ -758,27 +749,26 @@ function InvestTab({
                     }
                   }}
                   className="w-full rounded-xl bg-secondary py-2.5 text-[14px] font-semibold disabled:opacity-60"
-                >
-                  Yuborish
+                >{tr("Yuborish")}
                 </button>
               </div>
             )}
           </Card>
         ))
       ) : (
-        <Empty>Hozircha loyiha yo'q.</Empty>
+        <Empty>{tr("Hozircha loyiha yo'q.")}</Empty>
       )}
 
-      <SectionTitle>Mening takliflarim</SectionTitle>
+      <SectionTitle>{tr("Mening takliflarim")}</SectionTitle>
       {data.myInvestments.length ? (
         data.myInvestments.map((i) => (
           <Card key={i.id}>
             <p className="text-[15px] font-semibold">{i.amount}</p>
-            <p className="mt-1 text-[12px] text-muted-foreground">Holat: {statusLabel(i.status)}</p>
+            <p className="mt-1 text-[12px] text-muted-foreground">{tr("Holat:")}{" "}{statusLabel(i.status)}</p>
           </Card>
         ))
       ) : (
-        <Empty>Hozircha taklif yubormadingiz.</Empty>
+        <Empty>{tr("Hozircha taklif yubormadingiz.")}</Empty>
       )}
     </div>
   );
@@ -810,12 +800,12 @@ function ParentTab({
     <div className="space-y-3">
       {data.user.parent_secret && (
         <Card>
-          <p className="text-[13px] text-muted-foreground">Farzand uchun maxfiy raqam</p>
+          <p className="text-[13px] text-muted-foreground">{tr("Farzand uchun maxfiy raqam")}</p>
           <p className="mt-1 text-[22px] font-bold tracking-widest text-primary">{data.user.parent_secret}</p>
         </Card>
       )}
 
-      <SectionTitle>Farzandlar</SectionTitle>
+      <SectionTitle>{tr("Farzandlar")}</SectionTitle>
       {data.children.length ? (
         data.children.map((c) => (
           <Card key={c.id}>
@@ -826,27 +816,26 @@ function ParentTab({
           </Card>
         ))
       ) : (
-        <Empty>Bog'langan farzand yo'q. Farzandingiz botda maxfiy raqamni kiritishi kerak.</Empty>
+        <Empty>{tr("Bog'langan farzand yo'q. Farzandingiz botda maxfiy raqamni kiritishi kerak.")}</Empty>
       )}
 
-      <SectionTitle>Farzand loyihalari</SectionTitle>
+      <SectionTitle>{tr("Farzand loyihalari")}</SectionTitle>
       {data.childProjects.length ? (
         data.childProjects.map((p) => (
           <Card key={p.id}>
             <p className="text-[15px] font-semibold">{p.title}</p>
             <p className="mt-1 text-[13px] text-muted-foreground">{p.description}</p>
             {p.telegram_group_url && (
-              <a href={p.telegram_group_url} className="mt-2 inline-block text-[13px] font-medium text-primary">
-                Guruh faoliyatini kuzatish →
+              <a href={p.telegram_group_url} className="mt-2 inline-block text-[13px] font-medium text-primary">{tr("Guruh faoliyatini kuzatish →")}
               </a>
             )}
           </Card>
         ))
       ) : (
-        <Empty>Loyiha yo'q.</Empty>
+        <Empty>{tr("Loyiha yo'q.")}</Empty>
       )}
 
-      <SectionTitle>Farzand patentlari</SectionTitle>
+      <SectionTitle>{tr("Farzand patentlari")}</SectionTitle>
       {data.childPatents.length ? (
         data.childPatents.map((p) => (
           <Card key={p.id}>
@@ -856,8 +845,7 @@ function ParentTab({
             </p>
             {p.status === "pending_parent" && (
               <>
-                <p className="mt-2 text-[13px] text-muted-foreground">
-                  Ariza sizning roziligingizni kutmoqda. Rozilik bergach, ariza ko'rib chiqishga yuboriladi.
+                <p className="mt-2 text-[13px] text-muted-foreground">{tr("Ariza sizning roziligingizni kutmoqda. Rozilik bergach, ariza ko'rib chiqishga yuboriladi.")}
                 </p>
                 <div className="mt-3 flex gap-2">
                   {[true, false].map((approve) => (
@@ -866,7 +854,7 @@ function ParentTab({
                       onClick={async () => {
                         const res = await rpc<{ ok: boolean }>("parentPatentDecision", { patentId: p.id, approve });
                         if (res?.ok) {
-                          setToast(approve ? "Rozilik berildi" : "Rad etildi");
+                          setToast(approve ? tr("Rozilik berildi") : tr("Rad etildi"));
                           await reload();
                         }
                       }}
@@ -876,7 +864,7 @@ function ParentTab({
                           : "flex-1 rounded-xl border border-border py-2.5 text-[14px] font-semibold"
                       }
                     >
-                      {approve ? "✅ Rozilik beraman" : "Rad etish"}
+                      {approve ? tr("✅ Rozilik beraman") : tr("Rad etish")}
                     </button>
                   ))}
                 </div>
@@ -885,18 +873,17 @@ function ParentTab({
           </Card>
         ))
       ) : (
-        <Empty>Patent yo'q.</Empty>
+        <Empty>{tr("Patent yo'q.")}</Empty>
       )}
 
 
-      <SectionTitle>Rozilik kutayotgan investitsiyalar</SectionTitle>
+      <SectionTitle>{tr("Rozilik kutayotgan investitsiyalar")}</SectionTitle>
       {data.parentPendingInvestments.length ? (
         data.parentPendingInvestments.map((i) => (
           <Card key={i.id} className="space-y-2">
             <p className="text-[15px] font-semibold">{i.amount}</p>
             <p className="text-[13px] text-muted-foreground">{i.message}</p>
-            <p className="text-[12px] text-muted-foreground">
-              Investor: {i.investor} · holat: {statusLabel(i.status)}
+            <p className="text-[12px] text-muted-foreground">{tr("Investor:")}{" "}{i.investor}{tr("· holat:")}{" "}{statusLabel(i.status)}
             </p>
             {i.status === "pending_parent" && (
               <div className="flex gap-2 pt-1">
@@ -904,32 +891,30 @@ function ParentTab({
                   onClick={async () => {
                     const res = await rpc<{ ok: boolean }>("parentDecision", { investmentId: i.id, approve: true });
                     if (res?.ok) {
-                      setToast("Rozilik berildi");
+                      setToast(tr("Rozilik berildi"));
                       await reload();
                     }
                   }}
                   className="flex-1 rounded-xl bg-primary py-2.5 text-[14px] font-semibold text-primary-foreground"
-                >
-                  Rozilik
+                >{tr("Rozilik")}
                 </button>
                 <button
                   onClick={async () => {
                     const res = await rpc<{ ok: boolean }>("parentDecision", { investmentId: i.id, approve: false });
                     if (res?.ok) {
-                      setToast("Rad etildi");
+                      setToast(tr("Rad etildi"));
                       await reload();
                     }
                   }}
                   className="flex-1 rounded-xl border border-border py-2.5 text-[14px] font-semibold"
-                >
-                  Rad etish
+                >{tr("Rad etish")}
                 </button>
               </div>
             )}
           </Card>
         ))
       ) : (
-        <Empty>Rozilik kutayotgan taklif yo'q.</Empty>
+        <Empty>{tr("Rozilik kutayotgan taklif yo'q.")}</Empty>
       )}
     </div>
   );
@@ -962,11 +947,11 @@ function PatentTab({
 
   async function submit() {
     if (!PATENT_ENABLED) {
-      setToast("⏳ Ixtironi patentlash xizmati hozircha ishga tushmagan. Tez orada ochiladi.");
+      setToast(tr("⏳ Ixtironi patentlash xizmati hozircha ishga tushmagan. Tez orada ochiladi."));
       return;
     }
     if (title.trim().length < 3 || description.trim().length < 20) {
-      setToast("Ixtiro nomi va tavsifini to'liqroq yozing (tavsif kamida 20 belgi).");
+      setToast(tr("Ixtiro nomi va tavsifini to'liqroq yozing (tavsif kamida 20 belgi)."));
       return;
     }
     const res = await rpc<{ ok: boolean; digital_seal: string; needsParent: boolean }>("submitPatent", {
@@ -989,62 +974,58 @@ function PatentTab({
     <div className="space-y-3">
       {needsOneId && data.user.identity_url && (
         <Card className="border-primary/50">
-          <p className="text-[14px] font-semibold">Shaxsni tasdiqlash talab qiladi</p>
-          <p className="mt-1 text-[13px] text-muted-foreground">
-            Qonuniy patent arizasi uchun OneID orqali shaxsingizni tasdiqlashingiz shart.
+          <p className="text-[14px] font-semibold">{tr("Shaxsni tasdiqlash talab qiladi")}</p>
+          <p className="mt-1 text-[13px] text-muted-foreground">{tr("Qonuniy patent arizasi uchun OneID orqali shaxsingizni tasdiqlashingiz shart.")}
           </p>
           <a
             href={data.user.identity_url}
             target="_blank"
             rel="noreferrer"
             className="mt-3 block rounded-xl bg-primary py-2.5 text-center text-[14px] font-semibold text-primary-foreground"
-          >
-            🏛 OneID orqali tasdiqlash
+          >{tr("🏛 OneID orqali tasdiqlash")}
           </a>
         </Card>
       )}
 
       {fees && (
         <Card>
-          <p className="text-[14px] font-semibold">Patent to'lovi</p>
+          <p className="text-[14px] font-semibold">{tr("Patent to'lovi")}</p>
           <ul className="mt-2 space-y-1 text-[13px] text-muted-foreground">
-            <li>Davlat yig'imi (Intellektual mulk agentligi): {money(fees.stateFee)}</li>
-            <li>
-              KelajakHub xizmat haqi ({fees.servicePercent}%): {money(fees.serviceFee)}
+            <li>{tr("Davlat yig'imi (Intellektual mulk agentligi):")}{" "}{money(fees.stateFee)}</li>
+            <li>{tr("KelajakHub xizmat haqi (")}{fees.servicePercent}%): {money(fees.serviceFee)}
             </li>
-            <li className="font-semibold text-foreground">Umumiy: {money(fees.total)}</li>
+            <li className="font-semibold text-foreground">{tr("Umumiy:")}{" "}{money(fees.total)}</li>
           </ul>
-          <p className="mt-2 text-[12px] text-muted-foreground">
-            To'lov ariza ekspertizadan o'tgach hisoblanadi. Davlat yig'imi to'liq davlat budjetiga o'tadi.
+          <p className="mt-2 text-[12px] text-muted-foreground">{tr("To'lov ariza ekspertizadan o'tgach hisoblanadi. Davlat yig'imi to'liq davlat budjetiga o'tadi.")}
           </p>
         </Card>
       )}
 
       <Card className="space-y-3">
-        <h2 className="text-[15px] font-semibold">Yangi patent arizasi</h2>
-        <Field label="Ixtiro nomi" value={title} onChange={setTitle} />
-        <Field label="Ixtiro tavsifi (mohiyati, yangiligi, qo'llanishi)" value={description} onChange={setDescription} textarea />
+        <h2 className="text-[15px] font-semibold">{tr("Yangi patent arizasi")}</h2>
+        <Field label={tr("Ixtiro nomi")} value={title} onChange={setTitle} />
+        <Field label={tr("Ixtiro tavsifi (mohiyati, yangiligi, qo'llanishi)")} value={description} onChange={setDescription} textarea />
         <button
           onClick={submit}
           disabled={busy || needsOneId}
           className="w-full rounded-xl bg-primary py-3 text-[15px] font-semibold text-primary-foreground disabled:opacity-60"
         >
-          {busy ? "Yuborilmoqda..." : "Raqamli muhr olib, arizani topshirish"}
+          {busy ? tr("Yuborilmoqda...") : tr("Raqamli muhr olib, arizani topshirish")}
         </button>
       </Card>
 
-      <SectionTitle>Arizalarim</SectionTitle>
+      <SectionTitle>{tr("Arizalarim")}</SectionTitle>
       {data.patents.length ? (
         data.patents.map((p) => (
           <Card key={p.id}>
             <p className="text-[15px] font-semibold">{p.title}</p>
             <p className="mt-1 text-[12px] text-muted-foreground">
-              {statusLabel(p.status)} · muhr: <code className="text-primary">{p.digital_seal}</code>
+              {statusLabel(p.status)}{tr("· muhr:")}{" "}<code className="text-primary">{p.digital_seal}</code>
             </p>
           </Card>
         ))
       ) : (
-        <Empty>Hozircha ariza yo'q.</Empty>
+        <Empty>{tr("Hozircha ariza yo'q.")}</Empty>
       )}
     </div>
   );
@@ -1072,10 +1053,10 @@ function MentorProfileTab({
   return (
     <div className="space-y-3">
       <Card className="space-y-3">
-        <h2 className="text-[15px] font-semibold">Mentor profili</h2>
-        <Field label="Yo'nalish (masalan: IT, robototexnika)" value={expertise} onChange={setExpertise} />
-        <Field label="Qisqa ma'lumot" value={bio} onChange={setBio} textarea />
-        <Field label="Xizmat haqi (masalan: 150 000 so'm / oy)" value={fee} onChange={setFee} />
+        <h2 className="text-[15px] font-semibold">{tr("Mentor profili")}</h2>
+        <Field label={tr("Yo'nalish (masalan: IT, robototexnika)")} value={expertise} onChange={setExpertise} />
+        <Field label={tr("Qisqa ma'lumot")} value={bio} onChange={setBio} textarea />
+        <Field label={tr("Xizmat haqi (masalan: 150 000 so'm / oy)")} value={fee} onChange={setFee} />
         <button
           onClick={async () => {
             const res = await rpc<{ ok: boolean }>("saveMentorProfile", {
@@ -1084,17 +1065,16 @@ function MentorProfileTab({
               mentor_fee: fee.trim(),
             });
             if (res?.ok) {
-              setToast("Profil saqlandi");
+              setToast(tr("Profil saqlandi"));
               await reload();
             }
           }}
           disabled={busy}
           className="w-full rounded-xl bg-primary py-3 text-[15px] font-semibold text-primary-foreground disabled:opacity-60"
         >
-          {busy ? "Saqlanmoqda..." : "Saqlash"}
+          {busy ? tr("Saqlanmoqda...") : tr("Saqlash")}
         </button>
-        <p className="text-[12px] text-muted-foreground">
-          Xizmat haqi ixtirochilarga mentor tanlashda ko'rinadi. To'lov mentor va ixtirochi o'rtasida kelishiladi.
+        <p className="text-[12px] text-muted-foreground">{tr("Xizmat haqi ixtirochilarga mentor tanlashda ko'rinadi. To'lov mentor va ixtirochi o'rtasida kelishiladi.")}
         </p>
       </Card>
 
@@ -1132,8 +1112,7 @@ function LessonsTab({ rpc }: { rpc: <T>(a: string, p: Record<string, unknown>) =
   if (open) {
     return (
       <div className="space-y-3">
-        <button onClick={() => { setOpen(null); setMsgs([]); setWatched(false); }} className="text-[14px] text-primary">
-          ‹ Darslar
+        <button onClick={() => { setOpen(null); setMsgs([]); setWatched(false); }} className="text-[14px] text-primary">{tr("‹ Darslar")}
         </button>
         <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
           <div className="relative aspect-video w-full">
@@ -1148,16 +1127,15 @@ function LessonsTab({ rpc }: { rpc: <T>(a: string, p: Record<string, unknown>) =
           <div className="space-y-2 p-4">
             <h2 className="text-[16px] font-semibold leading-snug">{open.title}</h2>
             <div className="rounded-xl bg-muted/60 p-3 text-[13px]">
-              <p><span className="text-muted-foreground">Muallif:</span> <b>{open.author}</b></p>
-              <p><span className="text-muted-foreground">YouTube kanali:</span> {open.channel}</p>
+              <p><span className="text-muted-foreground">{tr("Muallif:")}</span> <b>{open.author}</b></p>
+              <p><span className="text-muted-foreground">{tr("YouTube kanali:")}</span> {open.channel}</p>
               <p className="mt-1 text-muted-foreground">{open.about}</p>
               <a
                 href={`https://www.youtube.com/watch?v=${open.youtubeId}`}
                 target="_blank"
                 rel="noreferrer"
                 className="mt-2 inline-block text-primary"
-              >
-                YouTube'da ochish ↗
+              >{tr("YouTube'da ochish ↗")}
               </a>
             </div>
           </div>
@@ -1167,14 +1145,13 @@ function LessonsTab({ rpc }: { rpc: <T>(a: string, p: Record<string, unknown>) =
           <button
             onClick={() => { setWatched(true); void ask("Boshlash", []); }}
             className="w-full rounded-xl bg-primary py-3 text-[15px] font-semibold text-primary-foreground"
-          >
-            ✅ Darsni ko'rib bo'ldim — AI bilan savol-javob
+          >{tr("✅ Darsni ko'rib bo'ldim — AI bilan savol-javob")}
           </button>
         ) : (
           <Card className="space-y-2">
-            <p className="text-[14px] font-semibold">🤖 AI savol-javob</p>
+            <p className="text-[14px] font-semibold">{tr("🤖 AI savol-javob")}</p>
             <div className="max-h-[50vh] space-y-2 overflow-y-auto">
-              {msgs.slice(1).length === 0 && !thinking && <p className="text-[13px] text-muted-foreground">Savol tayyorlanmoqda...</p>}
+              {msgs.slice(1).length === 0 && !thinking && <p className="text-[13px] text-muted-foreground">{tr("Savol tayyorlanmoqda...")}</p>}
               {msgs.map((m, i) =>
                 i === 0 ? null : (
                   <div
@@ -1187,14 +1164,14 @@ function LessonsTab({ rpc }: { rpc: <T>(a: string, p: Record<string, unknown>) =
                   </div>
                 ),
               )}
-              {thinking && <p className="text-[12px] text-muted-foreground">AI yozmoqda...</p>}
+              {thinking && <p className="text-[12px] text-muted-foreground">{tr("AI yozmoqda...")}</p>}
             </div>
             <div className="flex gap-2">
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && void ask(input)}
-                placeholder="Javobingiz yoki savolingiz..."
+                placeholder={tr("Javobingiz yoki savolingiz...")}
                 className="flex-1 rounded-xl border border-border bg-background px-3 py-2.5 text-[14px] outline-none"
               />
               <button
@@ -1214,7 +1191,7 @@ function LessonsTab({ rpc }: { rpc: <T>(a: string, p: Record<string, unknown>) =
   const list = (all ?? []).filter((l) => l.category === cat);
   return (
     <div className="space-y-3">
-      <p className="px-1 text-[13px] text-muted-foreground">O'zbek tilidagi bepul video darslar. Darsdan so'ng AI bilimingizni tekshiradi.</p>
+      <p className="px-1 text-[13px] text-muted-foreground">{tr("O'zbek tilidagi bepul video darslar. Darsdan so'ng AI bilimingizni tekshiradi.")}</p>
       <div className="flex gap-2 overflow-x-auto pb-1">
         {LESSON_CATEGORIES.map((c) => (
           <button
@@ -1228,8 +1205,8 @@ function LessonsTab({ rpc }: { rpc: <T>(a: string, p: Record<string, unknown>) =
           </button>
         ))}
       </div>
-      {all === null && <p className="px-1 text-[13px] text-muted-foreground">Yuklanmoqda...</p>}
-      {all !== null && list.length === 0 && <p className="px-1 text-[13px] text-muted-foreground">Bu bo'limda hozircha dars yo'q.</p>}
+      {all === null && <p className="px-1 text-[13px] text-muted-foreground">{tr("Yuklanmoqda...")}</p>}
+      {all !== null && list.length === 0 && <p className="px-1 text-[13px] text-muted-foreground">{tr("Bu bo'limda hozircha dars yo'q.")}</p>}
       {list.map((l) => (
         <button key={l.id} onClick={() => setOpen(l)} className="block w-full text-left">
           <Card className="flex gap-3 p-3">
@@ -1270,9 +1247,8 @@ function LabTab({ initData }: { initData: string | null }) {
   return (
     <div className="space-y-3">
       <Card className="space-y-3">
-        <h2 className="text-[15px] font-semibold">🧪 Laboratoriya</h2>
-        <p className="text-[13px] text-muted-foreground">
-          Kod, formula, tajriba yoki ixtiro g'oyangizni yozing — AI uni tahlil qilib, xatolarni va yaxshilash yo'llarini ko'rsatadi.
+        <h2 className="text-[15px] font-semibold">{tr("🧪 Laboratoriya")}</h2>
+        <p className="text-[13px] text-muted-foreground">{tr("Kod, formula, tajriba yoki ixtiro g'oyangizni yozing — AI uni tahlil qilib, xatolarni va yaxshilash yo'llarini ko'rsatadi.")}
         </p>
         <textarea
           value={code}
@@ -1286,12 +1262,12 @@ function LabTab({ initData }: { initData: string | null }) {
           disabled={busy || !code.trim()}
           className="w-full rounded-xl bg-primary py-3 text-[15px] font-semibold text-primary-foreground disabled:opacity-60"
         >
-          {busy ? "Tahlil qilinmoqda..." : "▶ Tahlil qilish"}
+          {busy ? tr("Tahlil qilinmoqda...") : tr("▶ Tahlil qilish")}
         </button>
       </Card>
       {out && (
         <Card>
-          <p className="mb-1 text-[12px] uppercase tracking-wide text-muted-foreground">Natija</p>
+          <p className="mb-1 text-[12px] uppercase tracking-wide text-muted-foreground">{tr("Natija")}</p>
           <p className="whitespace-pre-wrap text-[14px] leading-relaxed">{out}</p>
         </Card>
       )}
