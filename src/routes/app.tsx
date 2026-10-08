@@ -209,7 +209,7 @@ function MiniApp() {
         <p className="mt-1 text-[13px] text-muted-foreground">
           {roleLabel(data.user.role)}
           {isMinor ? tr(" (16 yoshgacha)") : ""} · {data.user.phone || tr("raqam yo'q")} ·{" "}
-          {data.user.is_verified ? "tasdiqlangan" : "tasdiqlanmagan"}
+          {data.user.is_verified ? tr("tasdiqlangan") : tr("tasdiqlanmagan")}
         </p>
       </header>
 
