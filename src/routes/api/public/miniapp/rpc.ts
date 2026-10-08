@@ -23,6 +23,7 @@ const schema = z.object({
     "lessons",
   ]),
   payload: z.record(z.string(), z.unknown()).default({}),
+  lang: z.enum(["uz", "en", "ru"]).default("uz"),
 });
 
 export const Route = createFileRoute("/api/public/miniapp/rpc")({
@@ -31,7 +32,7 @@ export const Route = createFileRoute("/api/public/miniapp/rpc")({
       OPTIONS: async () => new Response(null, { status: 204, headers: cors }),
       POST: async ({ request }) => {
         try {
-          const { initData, action, payload } = schema.parse(await request.json());
+          const { initData, action, payload, lang } = schema.parse(await request.json());
           const core = await import("@/lib/miniapp-core.server");
           const p = payload as Record<string, never>;
 
@@ -71,7 +72,7 @@ export const Route = createFileRoute("/api/public/miniapp/rpc")({
               const input = z
                 .object({ conversationId: z.string().uuid(), body: z.string().trim().min(1).max(4000) })
                 .parse(payload);
-              return Response.json(await core.sendChatMessage(initData, input.conversationId, input.body), {
+              return Response.json(await core.sendChatMessage(initData, input.conversationId, input.body, lang), {
                 headers: cors,
               });
             }
@@ -129,7 +130,7 @@ export const Route = createFileRoute("/api/public/miniapp/rpc")({
                     .max(40),
                 })
                 .parse(payload);
-              return Response.json(await core.lessonChat(initData, input.lesson, input.messages), { headers: cors });
+              return Response.json(await core.lessonChat(initData, input.lesson, input.messages, lang), { headers: cors });
             }
             case "lessons":
               return Response.json(await core.lessons(initData), { headers: cors });
