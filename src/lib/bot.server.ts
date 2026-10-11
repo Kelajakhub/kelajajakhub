@@ -18,7 +18,11 @@ export function currentBotToken() {
 export function withBot<T>(token: string, fn: () => Promise<T>) {
   return botStore.run(token, fn);
 }
-const MINI_APP_ORIGIN = () => process.env["PUBLIC_APP_URL"] || "https://kelajajakhub.lovable.app";
+// Telegram must use the public published site: preview/dev hosts answer 403 Forbidden inside Telegram.
+const MINI_APP_ORIGIN = () => {
+  const u = process.env["PUBLIC_APP_URL"] ?? "";
+  return u && !/-dev\.|id-preview--|project--/.test(u) ? u : "https://kelajajakhub.lovable.app";
+};
 
 export type BotUser = {
   id: string;
