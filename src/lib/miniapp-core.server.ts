@@ -416,7 +416,7 @@ async function aiReply(
   const call = (messages: { role: string; content: string }[]) =>
     fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: { "content-type": "application/json", Authorization: `Bearer ${key}`, "X-Lovable-AIG-SDK": "fetch" },
+      headers: { "content-type": "application/json", Authorization: `Bearer ${key}`, "X-Lovable-AIG-SDK": "fetch", "user-agent": "KelajakHub/1.0" },
       body: JSON.stringify({ model: "openai/gpt-6-astra", reasoning_effort: "low", messages }),
     });
   let res: Response;
