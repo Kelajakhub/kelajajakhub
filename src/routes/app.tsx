@@ -135,7 +135,7 @@ function MiniApp() {
     tg?.WebApp?.expand?.();
     const raw = tg?.WebApp?.initData ?? "";
     if (!raw) {
-      setError(tr("Bu sahifa Telegram bot ichida ochilishi kerak. @kelajakhubbot ga kiring va «KelajakHub» tugmasini bosing."));
+      setError(tr("Bu sahifa Telegram bot ichida ochilishi kerak. @KelajakHub_bot ga kiring va «KelajakHub» tugmasini bosing."));
       return;
     }
     setInitData(raw);

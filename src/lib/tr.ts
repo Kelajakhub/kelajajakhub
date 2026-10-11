@@ -19,7 +19,7 @@ const D: Record<string, [string, string]> = {
   "Bog'langan farzand yo'q. Farzandingiz botda maxfiy raqamni kiritishi kerak.": ["No linked child. Your child must enter the secret code in the bot.", "Нет привязанного ребёнка. Ребёнок должен ввести секретный код в боте."],
   "Boshlash": ["Start", "Начать"],
   "Bu bo'limda hozircha dars yo'q.": ["No lessons in this section yet.", "В этом разделе пока нет уроков."],
-  "Bu sahifa Telegram bot ichida ochilishi kerak. @kelajakhubbot ga kiring va «KelajakHub» tugmasini bosing.": ["This page must be opened inside the Telegram bot. Open @kelajakhubbot and tap «KelajakHub».", "Эту страницу нужно открыть в Telegram-боте. Откройте @kelajakhubbot и нажмите «KelajakHub»."],
+  "Bu sahifa Telegram bot ichida ochilishi kerak. @KelajakHub_bot ga kiring va «KelajakHub» tugmasini bosing.": ["This page must be opened inside the Telegram bot. Open @KelajakHub_bot and tap «KelajakHub».", "Эту страницу нужно открыть в Telegram-боте. Откройте @KelajakHub_bot и нажмите «KelajakHub»."],
   "Chat tarixi 30 kundan keyin avtomatik o'chiriladi. Patent tarixi hech qachon o'chmaydi.": ["Chat history is deleted after 30 days. Patent history is never deleted.", "История чата удаляется через 30 дней. История патентов не удаляется никогда."],
   "Davlat yig'imi (Intellektual mulk agentligi):": ["State fee (IP Agency):", "Госпошлина (Агентство ИС):"],
   "Farzand loyihalari": ["Child's projects", "Проекты ребёнка"],
