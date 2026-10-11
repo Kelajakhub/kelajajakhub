@@ -434,6 +434,42 @@ async function aiReply(
         { role: "user", content: last.slice(0, 3000) },
       ]);
     }
+    if (res.status === 403 && !(res.headers.get("content-type") ?? "").includes("json")) {
+      console.error("[ai] still 403, trying responses endpoint");
+      const r = await fetch("https://ai.gateway.lovable.dev/v1/responses", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          Authorization: `Bearer ${key}`,
+          "Lovable-API-Key": key,
+          "X-Lovable-AIG-SDK": "fetch",
+          "user-agent": "KelajakHub/1.0",
+        },
+        body: JSON.stringify({
+          model: "openai/gpt-6-astra",
+          stream: true,
+          store: false,
+          reasoning: { effort: "low" },
+          instructions: `${system} Javobda markdown belgilarini ishlatma. ${LANG_RULE[lang] ?? LANG_RULE.uz}`,
+          input: msgs.slice(-12).map((m) => ({ role: m.role, content: m.content })),
+        }),
+      });
+      if (r.ok && r.body) {
+        const text = await r.text();
+        let out = "";
+        for (const line of text.split("\n")) {
+          if (!line.startsWith("data:")) continue;
+          try {
+            const ev = JSON.parse(line.slice(5).trim()) as { type?: string; delta?: string };
+            if (ev.type === "response.output_text.delta" && ev.delta) out += ev.delta;
+          } catch {
+            /* skip */
+          }
+        }
+        if (out.trim()) return stripMarkdown(out);
+      }
+      console.error(`[ai] responses ${r.status}: ${(await r.text().catch(() => "")).slice(0, 200)}`);
+    }
   } catch (e) {
     console.error("[ai] network", e);
     return "AI mentor bilan aloqa uzildi, qayta urinib ko'ring.";
