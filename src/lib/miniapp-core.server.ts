@@ -413,17 +413,27 @@ async function aiReply(
     .map((m) => ({ role: m.sender_role === "ai" ? "assistant" : "user", content: m.body }));
   while (msgs.length && msgs[0]!.role === "assistant") msgs.shift();
   if (!msgs.length) msgs.push({ role: "user", content: "Salom" });
-  let res: Response;
-  try {
-    res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const call = (messages: { role: string; content: string }[]) =>
+    fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { "content-type": "application/json", Authorization: `Bearer ${key}`, "X-Lovable-AIG-SDK": "fetch" },
-      body: JSON.stringify({
-        model: "openai/gpt-6-astra",
-        reasoning_effort: "low",
-        messages: [{ role: "system", content: `${system} Javobda markdown belgilarini (*, #, _) ishlatma. ${LANG_RULE[lang] ?? LANG_RULE.uz}` }, ...msgs],
-      }),
+      body: JSON.stringify({ model: "openai/gpt-6-astra", reasoning_effort: "low", messages }),
     });
+  let res: Response;
+  try {
+    res = await call([
+      { role: "system", content: `${system} Javobda markdown belgilarini ishlatma. ${LANG_RULE[lang] ?? LANG_RULE.uz}` },
+      ...msgs.slice(-12),
+    ]);
+    if (res.status === 403 && !(res.headers.get("content-type") ?? "").includes("json")) {
+      // Edge firewall rejected the payload — retry with a minimal, bot-style request.
+      console.error("[ai] 403 html, retrying minimal");
+      const last = msgs.filter((m) => m.role === "user").pop()?.content ?? "Salom";
+      res = await call([
+        { role: "system", content: "Sen KelajakHub platformasining AI mentorisan. Qisqa va amaliy javob ber." },
+        { role: "user", content: last.slice(0, 3000) },
+      ]);
+    }
   } catch (e) {
     console.error("[ai] network", e);
     return "AI mentor bilan aloqa uzildi, qayta urinib ko'ring.";
@@ -431,7 +441,7 @@ async function aiReply(
   if (res.status === 429) return "Juda ko'p so'rov yuborildi, birozdan keyin urinib ko'ring.";
   if (res.status === 402) return "AI xizmati vaqtincha to'xtatilgan (kredit tugagan).";
   if (!res.ok) {
-    console.error(`[ai] ${res.status}: ${await res.text()}`);
+    console.error(`[ai] ${res.status}: ${(await res.text()).slice(0, 300)}`);
     return "AI mentor javob bermadi, keyinroq urinib ko'ring.";
   }
   const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
