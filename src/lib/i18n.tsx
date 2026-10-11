@@ -71,7 +71,7 @@ const uz: Dict = {
   "tab.mentees": "Shogirdlar",
 
   "mini.loading": "Yuklanmoqda...",
-  "mini.onlyTelegram": "Bu sahifa Telegram bot ichida ochilishi kerak. @kelajakhubbot ga kiring va «KelajakHub» tugmasini bosing.",
+  "mini.onlyTelegram": "Bu sahifa Telegram bot ichida ochilishi kerak. @KelajakHub_bot ga kiring va «KelajakHub» tugmasini bosing.",
   "mini.verified": "tasdiqlangan",
   "mini.unverified": "tasdiqlanmagan",
   "mini.noPhone": "raqam yo'q",
@@ -213,7 +213,7 @@ const en: Dict = {
   "tab.mentees": "Mentees",
 
   "mini.loading": "Loading...",
-  "mini.onlyTelegram": "Open this page inside the Telegram bot: go to @kelajakhubbot and tap the «KelajakHub» button.",
+  "mini.onlyTelegram": "Open this page inside the Telegram bot: go to @KelajakHub_bot and tap the «KelajakHub» button.",
   "mini.verified": "verified",
   "mini.unverified": "not verified",
   "mini.noPhone": "no phone",
@@ -355,7 +355,7 @@ const ru: Dict = {
   "tab.mentees": "Ученики",
 
   "mini.loading": "Загрузка...",
-  "mini.onlyTelegram": "Откройте страницу внутри Telegram-бота: зайдите в @kelajakhubbot и нажмите кнопку «KelajakHub».",
+  "mini.onlyTelegram": "Откройте страницу внутри Telegram-бота: зайдите в @KelajakHub_bot и нажмите кнопку «KelajakHub».",
   "mini.verified": "подтверждён",
   "mini.unverified": "не подтверждён",
   "mini.noPhone": "нет номера",

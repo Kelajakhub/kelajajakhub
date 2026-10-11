@@ -39,7 +39,7 @@ export const Route = createFileRoute("/")({
   component: Landing,
 });
 
-const BOT_URL = "https://t.me/kelajakhubbot";
+const BOT_URL = "https://t.me/KelajakHub_bot";
 
 const steps = [
   { icon: Bot, k: "step1" },
